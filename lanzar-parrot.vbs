@@ -15,7 +15,7 @@ Set fso = CreateObject("Scripting.FileSystemObject")
 
 ' --- ruta de la carpeta de Parrot Office (la ajusta el instalador) ---
 base = fso.GetParentFolderName(WScript.ScriptFullName)
-If Not fso.FolderExists(base & "\index.html") Then
+If Not fso.FileExists(base & "\index.html") Then
     ' si el .vbs quedó en el escritorio, buscar la carpeta junto al acceso
     base = "C:\Parrot-Office"
 End If
