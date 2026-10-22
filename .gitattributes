@@ -1,0 +1,7 @@
+# normalizar fin de linea: LF para todo el texto
+* text=auto eol=lf
+*.png binary
+*.ico binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
