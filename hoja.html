@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parrot Office — Hoja de Cálculo</title>
+<style>
+  :root {
+    --verde: #17c98a;
+    --verde-osc: #0f9c6c;
+    --amarillo: #ffc53d;
+    --fondo: #101414;
+    --panel: #1a2222;
+    --borde: #2c3a3a;
+    --texto: #e8f0ee;
+    --suave: #9db3ad;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--fondo); color: var(--texto); font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  header { background: var(--panel); border-bottom: 1px solid var(--borde); padding: 8px 14px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  header a { color: var(--suave); text-decoration: none; font-size: 13px; }
+  header a:hover { color: var(--verde); }
+  h1 { font-size: 16px; }
+  h1 span { color: var(--verde); }
+  .acciones { margin-left: auto; display: flex; gap: 6px; }
+  button, select { background: var(--panel); color: var(--texto); border: 1px solid var(--borde); border-radius: 6px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; }
+  button:hover { border-color: var(--verde); color: var(--verde); }
+  .barra-formula { background: var(--panel); border-bottom: 1px solid var(--borde); padding: 6px 14px; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+  .celda-ref { min-width: 64px; text-align: center; font-weight: 700; color: var(--verde); border: 1px solid var(--borde); border-radius: 6px; padding: 5px; background: var(--fondo); font-size: 13px; }
+  #fx { color: var(--amarillo); font-weight: 700; font-family: Georgia, serif; font-size: 15px; }
+  #input-fx { flex: 1; background: var(--fondo); border: 1px solid var(--borde); border-radius: 6px; color: var(--texto); padding: 6px 10px; font-size: 13px; font-family: Consolas, monospace; }
+  #input-fx:focus { outline: none; border-color: var(--verde); }
+  .toolbar { background: var(--panel); border-bottom: 1px solid var(--borde); padding: 5px 14px; display: flex; flex-wrap: wrap; gap: 5px; flex-shrink: 0; }
+  .toolbar .grupo { display: flex; gap: 4px; padding-right: 8px; margin-right: 4px; border-right: 1px solid var(--borde); }
+  .toolbar .grupo:last-child { border-right: none; }
+  .grid-wrap { flex: 1; overflow: auto; }
+  table { border-collapse: collapse; table-layout: fixed; }
+  th, td { border: 1px solid var(--borde); }
+  thead th { position: sticky; top: 0; z-index: 2; background: var(--panel); color: var(--suave); font-size: 11px; font-weight: 600; padding: 4px 0; cursor: pointer; user-select: none; }
+  thead th.sel { color: var(--verde); }
+  tbody th { position: sticky; left: 0; z-index: 1; background: var(--panel); color: var(--suave); font-size: 11px; width: 42px; min-width: 42px; cursor: pointer; user-select: none; }
+  tbody th.sel { color: var(--verde); }
+  td { width: 96px; min-width: 96px; height: 28px; padding: 0; background: #fff; }
+  td input { width: 100%; height: 100%; border: none; outline: none; padding: 2px 6px; font-size: 12.5px; font-family: inherit; background: transparent; color: #111; }
+  td.activa input { background: #eafff1; }
+  td.enrango { outline: 2px solid var(--verde); outline-offset: -2px; }
+  footer { background: var(--panel); border-top: 1px solid var(--borde); padding: 5px 14px; font-size: 12px; color: var(--suave); display: flex; gap: 18px; flex-shrink: 0; }
+  footer .ok { color: var(--verde); }
+</style>
+  <link rel="stylesheet" href="oficina-tema.css">
+</head>
+<body>
+
+<header>
+  <a href="index.html">← Parrot Office</a>
+  <h1>Hoja de <span>Cálculo</span></h1>
+  <div class="acciones" id="acciones">
+    <button class="principal" onclick="guardar()">Guardar</button>
+    <input type="file" id="fileInput" accept=".json,.csv,.xlsx" style="display:none">
+  </div>
+</header>
+
+<div class="barra-formula">
+  <div class="celda-ref" id="ref">A1</div>
+  <span id="fx">fx</span>
+  <input id="input-fx" placeholder="Escribí un valor o una fórmula, ej: =SUMA(A1:A10)" spellcheck="false">
+</div>
+
+<div class="toolbar">
+  <div class="grupo">
+    <button onclick="setEstilo('b')"><b>B</b></button>
+    <button onclick="setEstilo('i')"><i>I</i></button>
+  </div>
+  <div class="grupo">
+    <button onclick="setAlineado('l')" title="Alinear a la izquierda">⇤</button>
+    <button onclick="setAlineado('c')" title="Centrar">↔</button>
+    <button onclick="setAlineado('r')" title="Alinear a la derecha">⇥</button>
+  </div>
+  <div class="grupo">
+    <button onclick="setFormato(0)">0 dec</button>
+    <button onclick="setFormato(2)">2 dec</button>
+    <button onclick="setFormato(-1)">miles</button>
+    <button onclick="setFormato(-2)" title="Formato moneda">$</button>
+  </div>
+  <div class="grupo">
+    <input type="color" id="colorTxt" value="#111111" style="width:34px;height:28px" oninput="setColorTexto(this.value)" title="Color de texto">
+    <input type="color" id="colorFondo" value="#ffffff" style="width:34px;height:28px" oninput="setFondo(this.value)" title="Color de fondo">
+  </div>
+  <div class="grupo">
+    <button onclick="agregarFilas()">+10 filas</button>
+    <button onclick="agregarFila()">+fila</button>
+    <button onclick="eliminarFila()">-fila</button>
+    <button onclick="agregarColumna()">+columna</button>
+    <button onclick="eliminarColumna()">-columna</button>
+  </div>
+  <div class="grupo">
+    <button onclick="copiarRango()" title="Copiar el rango elegido (Ctrl+C)">Copiar</button>
+    <button onclick="limpiarRango()" title="Vaciar el rango elegido (Supr)">Vaciar</button>
+  </div>
+</div>
+
+<div class="grid-wrap">
+  <table id="tabla"></table>
+</div>
+
+<footer>
+  <span id="hoja-nombre" title="Clic para cambiar el nombre" style="cursor:pointer">📊 Hoja 1</span>
+  <span id="estado" class="ok">Listo</span>
+  <span id="info">Fórmulas: =SUMA, =PROMEDIO, =MAX, =MIN, =CONTAR, =CONTAR.SI, =SUMAR.SI, =SI, =Y, =O, =ABS, =REDONDEAR, =ENTERO, =RAIZ, =CONCATENAR, =LARGO, =MAYUSC, =MINUSC</span>
+  <span id="seleccion-info"></span>
+  <span id="guardado">Sin guardar</span>
+</footer>
+
+<script src="oficina-zip.js"></script>
+<script src="oficina-inflate.js"></script>
+<script src="oficina-leer.js"></script>
+<script src="oficina-xlsx.js"></script>
+<script src="oficina-claves.js"></script>
+<script src="oficina-historial.js"></script>
+<script src="oficina-plantillas.js"></script>
+<script src="oficina-menu.js"></script>
+<script>
+// ---- puerta de activación ----
+if (!window.ParrotClaves.estado().activado) location.href = 'activar.html';
+</script>
+<script>
+// ============ MODELO ============
+let COLS = 26;
+let filas = 52;
+// datos: { "A1": { f: "contenido crudo", b: false, i: false, fmt: null|0|2|-1|-2, a: null|'l'|'c'|'r', c: color texto, bg: fondo } }
+let datos = {};
+let activa = 'A1';
+let nombreHoja = 'Hoja 1';
+try { nombreHoja = localStorage.getItem('parrot-hoja-nombre') || nombreHoja; } catch (e) {}
+document.getElementById('hoja-nombre').textContent = '📊 ' + nombreHoja;
+document.getElementById('hoja-nombre').addEventListener('click', function () {
+  const n = prompt('Nombre de la hoja:', nombreHoja);
+  if (n && n.trim()) {
+    nombreHoja = n.trim().slice(0, 60);
+    try { localStorage.setItem('parrot-hoja-nombre', nombreHoja); } catch (e) {}
+    document.getElementById('hoja-nombre').textContent = '📊 ' + nombreHoja;
+    marcarSinGuardar();
+  }
+});
+
+try {
+  const g = localStorage.getItem('parrot-hoja');
+  if (g) {
+    const p = JSON.parse(g);
+    datos = p.datos || {};
+    if (p.filas) filas = p.filas;
+    if (p.cols) COLS = p.cols;
+  }
+} catch (e) {}
+
+// ============ TOKENIZER ============
+function tokenizar(s) {
+  const t = [];
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === ' ' || c === '\t') { i++; continue; }
+    if (/[0-9]/.test(c) || (c === '.' && /[0-9]/.test(s[i + 1] || ''))) {
+      // en fórmulas los decimales van con punto (3.14159); la coma separa argumentos
+      let j = i;
+      while (j < s.length) {
+        const ch = s[j];
+        if (/[0-9]/.test(ch)) { j++; continue; }
+        if (ch === '.' && /[0-9]/.test(s[j + 1] || '')) { j++; continue; }
+        break;
+      }
+      t.push({ t: 'num', v: parseFloat(s.slice(i, j)) });
+      i = j; continue;
+    }
+    if (c === '"') { let j = i + 1; while (j < s.length && s[j] !== '"') j++; t.push({ t: 'str', v: s.slice(i + 1, j) }); i = j + 1; continue; }
+    if (/[A-Za-zÑñÁÉÍÓÚáéíóú]/.test(c)) {
+      let j = i; while (j < s.length && /[A-Za-z0-9_$.]/.test(s[j])) j++;
+      const w = s.slice(i, j);
+      if (/^\$?[A-Za-z]{1,3}\$?[0-9]+$/.test(w)) t.push({ t: 'ref', v: w.toUpperCase().replace(/\$/g, '') });
+      else t.push({ t: 'id', v: w.toUpperCase() });
+      i = j; continue;
+    }
+    if ('+-*/^%'.includes(c)) { t.push({ t: 'op', v: c }); i++; continue; }
+    if (c === '(' || c === ')' || c === ',') { t.push({ t: 'sep', v: c }); i++; continue; }
+    if (c === ':') { t.push({ t: 'rango', v: ':' }); i++; continue; }
+    if (c === '<' || c === '>' || c === '=') {
+      let v = c; if ((c === '<' || c === '>') && s[i + 1] === '=') v = c + '=';
+      else if (c === '<' && s[i + 1] === '>') v = '<>';
+      t.push({ t: 'cmp', v }); i += v.length; continue;
+    }
+    throw new Error('token raro: ' + c);
+  }
+  return t;
+}
+
+// ============ PARSER (recursivo) ============
+function parsear(tokens) {
+  let p = 0;
+  function ver() { return tokens[p]; }
+  function comer() { return tokens[p++]; }
+
+  function expr() { return cmp(); }
+  function cmp() {
+    let n = suma();
+    while (ver() && ver().t === 'cmp') {
+      const op = comer().v; const d = suma();
+      n = { t: 'bin', op, izq: n, der: d };
+    }
+    return n;
+  }
+  function suma() {
+    let n = mult();
+    while (ver() && ver().t === 'op' && (ver().v === '+' || ver().v === '-')) {
+      const op = comer().v; const d = mult();
+      n = { t: 'bin', op, izq: n, der: d };
+    }
+    return n;
+  }
+  function mult() {
+    let n = pot();
+    while (ver() && ver().t === 'op' && (ver().v === '*' || ver().v === '/' || ver().v === '%')) {
+      const op = comer().v; const d = pot();
+      n = { t: 'bin', op, izq: n, der: d };
+    }
+    return n;
+  }
+  function pot() {
+    let n = unario();
+    while (ver() && ver().t === 'op' && ver().v === '^') {
+      comer(); const d = pot();
+      n = { t: 'bin', op: '^', izq: n, der: d };
+    }
+    return n;
+  }
+  function unario() {
+    if (ver() && ver().t === 'op' && (ver().v === '-' || ver().v === '+')) {
+      const op = comer().v;
+      return { t: 'neg', izq: unario(), menos: op === '-' };
+    }
+    return primario();
+  }
+  function primario() {
+    const tk = ver();
+    if (!tk) throw new Error('fin inesperado');
+    if (tk.t === 'num') { comer(); return { t: 'num', v: tk.v }; }
+    if (tk.t === 'str') { comer(); return { t: 'str', v: tk.v }; }
+    if (tk.t === 'ref') {
+      comer();
+      if (ver() && ver().t === 'rango') {
+        comer();
+        const b = comer();
+        if (!b || b.t !== 'ref') throw new Error('rango mal formado');
+        return { t: 'rango', desde: tk.v, hasta: b.v };
+      }
+      return { t: 'ref', v: tk.v };
+    }
+    if (tk.t === 'id') {
+      comer();
+      if (!ver() || ver().v !== '(') throw new Error('se esperaba ( después de ' + tk.v);
+      comer();
+      const args = [];
+      if (ver() && ver().v !== ')') {
+        args.push(expr());
+        while (ver() && ver().v === ',') { comer(); args.push(expr()); }
+      }
+      if (!ver() || ver().v !== ')') throw new Error('falta )');
+      comer();
+      return { t: 'fn', nombre: tk.v, args };
+    }
+    if (tk.t === 'sep' && tk.v === '(') {
+      comer(); const n = expr();
+      if (!ver() || ver().v !== ')') throw new Error('falta )');
+      comer(); return n;
+    }
+    throw new Error('no entendí: ' + (tk.v || tk.t));
+  }
+
+  const ast = expr();
+  if (p < tokens.length) throw new Error('basura al final');
+  return ast;
+}
+
+// ============ EVALUADOR ============
+const ERRORES = { CICLO: '#CICLO!', REF: '#REF!', DIV0: '#DIV/0!', GEN: '#ERROR!', VALOR: '#VALOR!' };
+let pila = new Set();
+
+function refAPos(ref) {
+  const m = ref.match(/^([A-Za-z]{1,3})([0-9]+)$/);
+  if (!m) throw new Error(ERRORES.REF);
+  let col = 0;
+  for (const ch of m[1]) col = col * 26 + (ch.toUpperCase().charCodeAt(0) - 64);
+  return { col, fila: parseInt(m[2], 10) };
+}
+
+function getValor(ref) {
+  const r = ref.toUpperCase().replace(/\$/g, '');
+  if (pila.has(r)) throw new Error(ERRORES.CICLO);
+  const cel = datos[r];
+  if (!cel || cel.f === undefined || cel.f === '') return 0;
+  const crudo = String(cel.f);
+  if (crudo.startsWith('=')) {
+    pila.add(r);
+    try {
+      const tokens = tokenizar(crudo.slice(1));
+      const ast = parsear(tokens);
+      return evaluar(ast);
+    } finally { pila.delete(r); }
+  }
+  // número? (soporta coma decimal y punto de miles)
+  const limpio = crudo.trim();
+  if (limpio !== '') {
+    const n = Number(limpio.includes(',') ? limpio.replace(/\./g, '').replace(',', '.') : limpio);
+    if (!isNaN(n)) return n;
+  }
+  return crudo; // texto
+}
+
+function num(v) {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const l = v.trim();
+    const n = Number(l.includes(',') ? l.replace(/\./g, '').replace(',', '.') : l);
+    if (isNaN(n)) throw new Error(ERRORES.VALOR);
+    return n;
+  }
+  throw new Error(ERRORES.VALOR);
+}
+
+// como num(), pero devuelve null en vez de romper: para las funciones de
+// agregado, que deben IGNORAR el texto dentro de los rangos (como Excel)
+function numONulo(v) {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const l = v.trim();
+    if (l === '') return null;
+    const n = Number(l.includes(',') ? l.replace(/\./g, '').replace(',', '.') : l);
+    return isNaN(n) ? null : n;
+  }
+  return null;
+}
+function numerosDe(args) {
+  return aplanar(args).map(numONulo).filter(function (v) { return v !== null; });
+}
+
+function valoresRango(desde, hasta) {
+  const a = refAPos(desde), b = refAPos(hasta);
+  const out = [];
+  for (let f = Math.min(a.fila, b.fila); f <= Math.max(a.fila, b.fila); f++) {
+    for (let c = Math.min(a.col, b.col); c <= Math.max(a.col, b.col); c++) {
+      out.push(getValor(colANombre(c) + f));
+    }
+  }
+  return out;
+}
+
+function colANombre(c) {
+  let n = ''; let x = c;
+  while (x > 0) { const r = (x - 1) % 26; n = String.fromCharCode(65 + r) + n; x = Math.floor((x - 1) / 26); }
+  return n;
+}
+
+function aplanar(args) {
+  const out = [];
+  for (const a of args) {
+    if (a.t === 'rango') out.push(...valoresRango(a.desde, a.hasta));
+    else out.push(evaluar(a));
+  }
+  return out;
+}
+
+function evaluar(n) {
+  switch (n.t) {
+    case 'num': return n.v;
+    case 'str': return n.v;
+    case 'ref': { const v = getValor(n.v); return v; }
+    case 'neg': { const v = evaluar(n.izq); return n.menos ? -num(v) : num(v); }
+    case 'rango': return valoresRango(n.desde, n.hasta);
+    case 'bin':
+      if (n.op === '^') return Math.pow(num(evaluar(n.izq)), num(evaluar(n.der)));
+      if (n.op === '+') {
+        const a = evaluar(n.izq), b = evaluar(n.der);
+        if (typeof a === 'string' || typeof b === 'string') return String(a) + String(b);
+        return num(a) + num(b);
+      }
+      if (n.op === '-') return num(evaluar(n.izq)) - num(evaluar(n.der));
+      if (n.op === '*') return num(evaluar(n.izq)) * num(evaluar(n.der));
+      if (n.op === '/') { const d = num(evaluar(n.der)); if (d === 0) throw new Error(ERRORES.DIV0); return num(evaluar(n.izq)) / d; }
+      if (n.op === '%') return num(evaluar(n.izq)) % num(evaluar(n.der));
+      if (['<', '>', '<=', '>=', '=', '<>'].includes(n.op)) {
+        const a = evaluar(n.izq), b = evaluar(n.der);
+        let an, bn;
+        if (typeof a === 'number' && typeof b === 'number') { an = a; bn = b; }
+        else { an = String(a).toUpperCase(); bn = String(b).toUpperCase(); }
+        if (n.op === '<') return an < bn;
+        if (n.op === '>') return an > bn;
+        if (n.op === '<=') return an <= bn;
+        if (n.op === '>=') return an >= bn;
+        if (n.op === '=') return an === bn;
+        if (n.op === '<>') return an !== bn;
+      }
+      throw new Error(ERRORES.GEN);
+    case 'fn': return funcion(n.nombre, n.args);
+  }
+  throw new Error(ERRORES.GEN);
+}
+
+function funcion(nombre, args) {
+  const F = {
+    SUMA: a => numerosDe(a).reduce((s, v) => s + v, 0),
+    PROMEDIO: a => { const vs = numerosDe(a); if (!vs.length) return 0; return vs.reduce((s, v) => s + v, 0) / vs.length; },
+    MAX: a => { const vs = numerosDe(a); return vs.length ? Math.max(...vs) : 0; },
+    MIN: a => { const vs = numerosDe(a); return vs.length ? Math.min(...vs) : 0; },
+    CONTAR: a => aplanar(a).filter(v => typeof v === 'number' || (!isNaN(numONulo(v)) && numONulo(v) !== null)).length,
+    // CONTAR.SI(rango, criterio): cuenta las celdas del rango que cumplen
+    'CONTAR.SI': a => { const rango = valoresRango(args[0].desde, args[0].hasta); const crit = String(evaluar(a[1])).toUpperCase(); return rango.filter(v => String(v).toUpperCase() === crit).length; },
+    // SUMAR.SI(rango, criterio, [rangoSuma]): suma las celdas de rangoSuma
+    // donde el rango cumple el criterio. Sin rangoSuma, suma el propio rango
+    // (comportamiento clásico de Excel).
+    'SUMAR.SI': a => {
+      const rango = valoresRango(args[0].desde, args[0].hasta);
+      const crit = String(evaluar(a[1])).toUpperCase();
+      let sumaRango = rango;
+      if (a.length > 2 && a[2] && a[2].t === 'rango') sumaRango = valoresRango(a[2].desde, a[2].hasta);
+      let s = 0;
+      for (let k = 0; k < rango.length; k++) {
+        if (String(rango[k]).toUpperCase() !== crit) continue;
+        const n = numONulo(sumaRango[k]);
+        if (n !== null) s += n;
+      }
+      return s;
+    },
+    SI: a => { const c = evaluar(a[0]); const v = c === true || c === 1 || c === 'VERDADERO'; return v ? evaluar(a[1]) : (a.length > 2 ? evaluar(a[2]) : false); },
+    Y: a => aplanar(a).every(v => v === true || v === 1 || v === 'VERDADERO'),
+    O: a => aplanar(a).some(v => v === true || v === 1 || v === 'VERDADERO'),
+    NO: a => !(evaluar(a[0]) === true || evaluar(a[0]) === 1),
+    ABS: a => Math.abs(num(evaluar(a[0]))),
+    REDONDEAR: a => { const d = a.length > 1 ? Math.round(num(evaluar(a[1]))) : 0; const f = Math.pow(10, d); return Math.round(num(evaluar(a[0])) * f) / f; },
+    ENTERO: a => Math.floor(num(evaluar(a[0]))),
+    RAIZ: a => { const n = num(evaluar(a[0])); if (n < 0) throw new Error('#NUM!'); return Math.sqrt(n); },
+    CONCATENAR: a => aplanar(a).map(String).join(''),
+    LARGO: a => String(evaluar(a[0])).length,
+    MAYUSC: a => String(evaluar(a[0])).toUpperCase(),
+    MINUSC: a => String(evaluar(a[0])).toLowerCase()
+  };
+  if (!F[nombre]) throw new Error(ERRORES.VALOR);
+  try { return F[nombre](args); }
+  catch (e) { if (Object.values(ERRORES).includes(e.message)) throw e; throw new Error(ERRORES.GEN); }
+}
+
+// valor mostrado en una celda
+function valorCelda(ref) {
+  const cel = datos[ref];
+  if (!cel || cel.f === undefined || String(cel.f) === '') return '';
+  const crudo = String(cel.f);
+  if (!crudo.startsWith('=')) return formatear(crudo, cel.fmt);
+  try {
+    pila = new Set();
+    const v = getValor(ref);
+    pila = new Set();
+    return formatear(v, cel.fmt);
+  } catch (e) {
+    return e.message || ERRORES.GEN;
+  }
+}
+
+function formatear(v, fmt) {
+  if (typeof v === 'number') {
+    if (fmt === -1) return v.toLocaleString('es-AR', { maximumFractionDigits: 6 });
+    if (fmt === -2) return '$ ' + v.toLocaleString('es-AR', { maximumFractionDigits: 6 });
+    if (fmt === 0) return Math.round(v).toString();
+    if (fmt === 2) return v.toFixed(2);
+    return String(Math.round(v * 1e6) / 1e6);
+  }
+  return String(v);
+}
+
+// valor real (numero o texto) para exportar a .xlsx
+function valorReal(ref) {
+  const cel = datos[ref];
+  if (!cel || String(cel.f ?? '') === '') return '';
+  const crudo = String(cel.f);
+  if (!crudo.startsWith('=')) {
+    const n = parseFloat(crudo);
+    return (!isNaN(n) && crudo.trim() !== '') ? n : crudo;
+  }
+  try {
+    pila = new Set();
+    const v = getValor(ref);
+    pila = new Set();
+    return v;
+  } catch (e) { return null; }
+}
+
+// ============ RENDER ============
+const tabla = document.getElementById('tabla');
+let inputs = {};
+
+function construir() {
+  let html = '<thead><tr><th></th>';
+  for (let c = 1; c <= COLS; c++) html += '<th data-col="' + c + '" id="th-' + c + '">' + colANombre(c) + '</th>';
+  html += '</tr></thead><tbody>';
+  for (let f = 1; f <= filas; f++) {
+    html += '<tr><th data-fila="' + f + '" id="rh-' + f + '">' + f + '</th>';
+    for (let c = 1; c <= COLS; c++) html += '<td data-ref="' + colANombre(c) + f + '" id="td-' + colANombre(c) + f + '"><input spellcheck="false"></td>';
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  tabla.innerHTML = html;
+  inputs = {};
+  tabla.querySelectorAll('input').forEach(inp => {
+    const ref = inp.closest('td').dataset.ref;
+    inputs[ref] = inp;
+    inp.addEventListener('focus', e => seleccionar(ref, e.shiftKey));
+    inp.addEventListener('blur', () => commit(ref));
+    inp.addEventListener('mousedown', e => {
+      if (e.shiftKey) { e.preventDefault(); seleccionar(ref, true); }
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); mover(ref, 1, 0); }
+      else if (e.key === 'Tab') { e.preventDefault(); mover(ref, 0, e.shiftKey ? -1 : 1); }
+      else if (e.key === 'Escape') { mostrarValor(ref); inp.blur(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') { e.preventDefault(); copiarRango(); }
+      else if ((e.key === 'Delete' || e.key === 'Supr') &&
+               inp.selectionStart === inp.selectionEnd) { e.preventDefault(); limpiarRango(); }
+    });
+    inp.addEventListener('paste', e => {
+      const texto = (e.clipboardData || window.clipboardData).getData('text');
+      if (texto && texto.indexOf('\t') >= 0) { e.preventDefault(); pegarTSV(texto); }
+    });
+  });
+  refrescar();
+}
+
+function refrescar() {
+  for (const ref in inputs) mostrarValor(ref);
+}
+
+function mostrarValor(ref) {
+  const inp = inputs[ref];
+  if (!inp) return;
+  if (document.activeElement === inp) inp.value = (datos[ref] ? String(datos[ref].f ?? '') : '');
+  else inp.value = valorCelda(ref);
+  const cel = datos[ref] || {};
+  inp.style.fontWeight = cel.b ? '700' : '';
+  inp.style.fontStyle = cel.i ? 'italic' : '';
+  inp.style.color = cel.c || '#111';
+  inp.style.textAlign = cel.a === 'c' ? 'center' : cel.a === 'r' ? 'right' : 'left';
+  inp.parentElement.style.background = cel.bg || '#fff';
+  inp.parentElement.classList.toggle('activa', ref === activa);
+  inp.parentElement.classList.toggle('enrango', enRango(ref));
+}
+
+function seleccionar(ref, extender) {
+  if (extender) {
+    if (!rango) rango = { desde: activa, hasta: activa };
+    rango.hasta = ref;
+    activa = ref;
+  } else {
+    rango = null;
+    activa = ref;
+  }
+  document.getElementById('ref').textContent = ref;
+  const inp = inputs[ref];
+  document.getElementById('input-fx').value = (datos[ref] ? String(datos[ref].f ?? '') : '');
+  for (const r in inputs) inputs[r].parentElement.classList.toggle('activa', r === ref);
+  document.querySelectorAll('thead th').forEach(th => th.classList.remove('sel'));
+  document.querySelectorAll('tbody th').forEach(th => th.classList.remove('sel'));
+  const col = refAPos(ref).col, fila = refAPos(ref).fila;
+  const th = document.getElementById('th-' + col); if (th) th.classList.add('sel');
+  const rh = document.getElementById('rh-' + fila); if (rh) rh.classList.add('sel');
+  refrescar();
+  actualizarInfoSeleccion();
+}
+
+function mover(ref, df, dc) {
+  const p = refAPos(ref);
+  const nc = Math.min(COLS, Math.max(1, p.col + dc));
+  const nf = Math.min(filas, Math.max(1, p.fila + df));
+  const dst = colANombre(nc) + nf;
+  const inp = inputs[dst];
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function asegurar(ref) {
+  if (!datos[ref]) datos[ref] = {};
+  return datos[ref];
+}
+
+// ============ SELECCIÓN DE RANGO (shift+clic) ============
+let rango = null; // { desde: 'A1', hasta: 'C5' }
+
+function enRango(ref) {
+  if (!rango) return false;
+  const a = refAPos(rango.desde), b = refAPos(rango.hasta), p = refAPos(ref);
+  return p.col >= Math.min(a.col, b.col) && p.col <= Math.max(a.col, b.col) &&
+         p.fila >= Math.min(a.fila, b.fila) && p.fila <= Math.max(a.fila, b.fila);
+}
+
+function celdasDelRango() {
+  if (!rango) return [activa];
+  const a = refAPos(rango.desde), b = refAPos(rango.hasta);
+  const out = [];
+  for (let f = Math.min(a.fila, b.fila); f <= Math.max(a.fila, b.fila); f++) {
+    for (let c = Math.min(a.col, b.col); c <= Math.max(a.col, b.col); c++) out.push(colANombre(c) + f);
+  }
+  return out;
+}
+
+function actualizarInfoSeleccion() {
+  const info = document.getElementById('seleccion-info');
+  const celdas = celdasDelRango();
+  let suma = 0, cuantos = 0;
+  celdas.forEach(function (r) {
+    const v = valorReal(r);
+    if (typeof v === 'number') { suma += v; cuantos++; }
+  });
+  if (celdas.length > 1) {
+    info.textContent = rango.desde + ':' + rango.hasta + ' · ' + celdas.length + ' celdas' +
+      (cuantos ? ' · suma ' + formatear(suma, -1) : '');
+  } else info.textContent = '';
+}
+
+// copiar el rango como texto tabulado (pega directo en Excel y en la hoja)
+function copiarRango() {
+  const celdas = celdasDelRango();
+  const a = refAPos(rango ? rango.desde : activa), b = refAPos(rango ? rango.hasta : activa);
+  const lineas = [];
+  for (let f = Math.min(a.fila, b.fila); f <= Math.max(a.fila, b.fila); f++) {
+    const linea = [];
+    for (let c = Math.min(a.col, b.col); c <= Math.max(a.col, b.col); c++) {
+      linea.push(String(valorCelda(colANombre(c) + f)).replace(/\t/g, ' ').replace(/\n/g, ' '));
+    }
+    lineas.push(linea.join('\t'));
+  }
+  const texto = lineas.join('\n');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto).then(function () {
+      flash('Copiado: ' + celdas.length + ' celdas (pegable en Excel)');
+    }, function () { flash('No pude copiar'); });
+  } else flash('Este navegador no deja copiar automático');
+}
+
+function limpiarRango() {
+  const celdas = celdasDelRango();
+  celdas.forEach(function (r) { delete datos[r]; });
+  refrescar();
+  marcarSinGuardar();
+  flash('Vaciadas ' + celdas.length + ' celdas');
+}
+
+function setAlineado(a) {
+  const c = asegurar(activa);
+  c.a = a;
+  mostrarValor(activa);
+  marcarSinGuardar();
+}
+
+// pegar texto tabulado (lo que copia Excel) desde la celda activa
+function pegarTSV(texto) {
+  const lineas = texto.replace(/\r/g, '').split('\n').filter(function (l, i, arr) { return !(i === arr.length - 1 && l === ''); });
+  const p0 = refAPos(activa);
+  let maxFila = p0.fila, maxCol = p0.col;
+  lineas.forEach(function (linea, di) {
+    const celdas = linea.split('\t');
+    celdas.forEach(function (v, dj) {
+      const f = p0.fila + di, c = p0.col + dj;
+      const ref = colANombre(c) + f;
+      if (v !== '') asegurar(ref).f = v;
+      else delete datos[ref];
+      maxFila = Math.max(maxFila, f);
+      maxCol = Math.max(maxCol, c);
+    });
+  });
+  while (filas < maxFila) filas++;
+  while (COLS < maxCol) COLS++;
+  construir();
+  marcarSinGuardar();
+  flash('Pegado: ' + lineas.length + ' fila(s) desde ' + activa);
+}
+
+function commit(ref) {
+  const inp = inputs[ref];
+  const v = inp.value;
+  if (v === '') { delete datos[ref]; }
+  else { const c = asegurar(ref); c.f = v; }
+  refrescar();
+  marcarSinGuardar();
+  try { localStorage.setItem('parrot-hoja', JSON.stringify({ datos, filas, cols: COLS })); marcarGuardado(); } catch (e) {}
+}
+
+function setEstilo(k) {
+  const c = asegurar(activa);
+  if (k === 'b') c.b = !c.b;
+  if (k === 'i') c.i = !c.i;
+  mostrarValor(activa);
+  marcarSinGuardar();
+}
+
+function setFormato(f) {
+  const c = asegurar(activa);
+  c.fmt = f;
+  mostrarValor(activa);
+  marcarSinGuardar();
+}
+
+function setColorTexto(v) { const c = asegurar(activa); c.c = v; mostrarValor(activa); marcarSinGuardar(); }
+function setFondo(v) { const c = asegurar(activa); c.bg = v; mostrarValor(activa); marcarSinGuardar(); }
+
+function agregarFilas() {
+  filas += 10;
+  construir();
+  marcarSinGuardar();
+}
+
+function agregarFila() {
+  filas += 1;
+  construir();
+  marcarSinGuardar();
+}
+
+function eliminarFila() {
+  if (filas > 1) {
+    filas -= 1;
+    construir();
+    marcarSinGuardar();
+  }
+}
+
+function agregarColumna() {
+  COLS += 1;
+  construir();
+  marcarSinGuardar();
+}
+
+function eliminarColumna() {
+  if (COLS > 1) {
+    COLS -= 1;
+    construir();
+    marcarSinGuardar();
+  }
+}
+
+
+function limpiar() {
+  if (!confirm('¿Vaciar toda la hoja?')) return;
+  datos = {};
+  refrescar();
+  marcarSinGuardar();
+}
+
+function guardar() {
+  try {
+    localStorage.setItem('parrot-hoja', JSON.stringify({ datos, filas, cols: COLS }));
+    marcarGuardado();
+    registrarEnHistorial();
+    flash('Guardado en este equipo');
+  } catch (e) { flash('No se pudo: ' + e.message); }
+}
+
+function registrarEnHistorial() {
+  try {
+    window.ParrotHistorial.registrar({
+      app: 'hoja',
+      nombre: nombreHoja,
+      datos: { datos: datos, filas: filas, cols: COLS }
+    });
+  } catch (e) {}
+}
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const nombre = f.name;
+  const esXlsx = /\.xlsx$/i.test(nombre);
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      if (esXlsx) {
+        const leido = window.ParrotLeer.xlsxADatos(new Uint8Array(r.result));
+        datos = leido.datos;
+        filas = leido.filas;
+        COLS = leido.cols || COLS;
+        construir();
+        nombreHoja = nombre.replace(/\.xlsx$/i, ''); document.getElementById('hoja-nombre').textContent = '📊 ' + nombreHoja;
+        registrarEnHistorial();
+        flash('Excel abierto: ' + Object.keys(datos).length + ' celdas (fórmulas y formato)');
+        return;
+      }
+      if (/\.csv$/i.test(f.name)) {
+        const texto = String(r.result).replace(/^\uFEFF/, '');
+        const lineas = texto.split(/\r?\n/).filter(l => l.length);
+        const nuevos = {};
+        let maxFila = 0, maxCols = 0;
+        lineas.forEach((linea, i) => {
+          const celdas = linea.match(/("([^"]|"")*"|[^,]*)(,|$)/g) || [];
+          let col = 0;
+          for (const raw of celdas) {
+            if (raw === '') break;
+            let v = raw.endsWith(',') ? raw.slice(0, -1) : raw;
+            v = v.replace(/^"|"$/g, '').replace(/""/g, '"');
+            if (v !== '') {
+              const ref = colANombre(col + 1) + (i + 1);
+              const n = parseFloat(v);
+              nuevos[ref] = { f: (!isNaN(n) && v.trim() !== '') ? String(n) : v };
+            }
+            col++;
+          }
+          maxFila = i + 1;
+          maxCols = Math.max(maxCols, col);
+        });
+        if (filas < maxFila) { filas = maxFila; }
+        datos = nuevos;
+        COLS = Math.max(COLS, maxCols + 1);
+        construir();
+        nombreHoja = nombre.replace(/\.csv$/i, ''); document.getElementById('hoja-nombre').textContent = '📊 ' + nombreHoja;
+        registrarEnHistorial();
+        flash('CSV importado: ' + Object.keys(nuevos).length + ' celdas');
+        return;
+      }
+      const d = JSON.parse(r.result);
+      datos = d.datos || {};
+      filas = d.filas || 52;
+      COLS = d.cols || 26;
+      construir();
+      nombreHoja = f.name.replace(/\.json$/i, ''); document.getElementById('hoja-nombre').textContent = '📊 ' + nombreHoja;
+      registrarEnHistorial();
+      flash('Abierto: ' + f.name);
+    } catch (err) { flash('Archivo no válido'); }
+  };
+  if (esXlsx) r.readAsArrayBuffer(f); else r.readAsText(f);
+});
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); guardar(); }
+});
+
+function exportarCSV() {
+  let csv = '';
+  for (let f = 1; f <= filas; f++) {
+    const linea = [];
+    for (let c = 1; c <= COLS; c++) {
+      const v = valorCelda(colANombre(c) + f);
+      linea.push('"' + String(v).replace(/"/g, '""') + '"');
+    }
+    csv += linea.join(',') + '\r\n';
+  }
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'parrot-hoja.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  flash('Exportado como CSV (se abre en Excel)');
+}
+
+function exportarXLSX() {
+  try {
+    const blob = window.ParrotXlsx.blob({
+      datos: datos,
+      valorReal: valorReal,
+      nombreHoja: nombreHoja
+    });
+    window.ParrotZip.descargar(nombreHoja + '.xlsx', blob);
+    flash('Exportado como .xlsx (se abre en Excel)');
+  } catch (e) { flash('No pude exportar el .xlsx: ' + e.message); }
+}
+
+function exportarHTML() {
+  let h = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>' + nombreHoja + '</title>' +
+    '<style>body{font-family:Segoe UI,sans-serif;margin:30px}table{border-collapse:collapse}td,th{border:1px solid #bbb;padding:5px 9px;font-size:13px;min-width:70px}th{background:#eef2f0}</style>' +
+    '</head><body><h2>' + nombreHoja + '</h2><table><tr><th></th>';
+  for (let c = 1; c <= COLS; c++) h += '<th>' + colANombre(c) + '</th>';
+  h += '</tr>';
+  for (let f = 1; f <= filas; f++) {
+    h += '<tr><th>' + f + '</th>';
+    for (let c = 1; c <= COLS; c++) {
+      const ref = colANombre(c) + f;
+      const cel = datos[ref] || {};
+      const est = (cel.b ? 'font-weight:700;' : '') + (cel.i ? 'font-style:italic;' : '') +
+        (cel.c ? 'color:' + cel.c + ';' : '') + (cel.bg ? 'background:' + cel.bg + ';' : '') +
+        (cel.a === 'c' ? 'text-align:center;' : cel.a === 'r' ? 'text-align:right;' : '');
+      h += '<td style="' + est + '">' + String(valorCelda(ref)).replace(/</g, '&lt;') + '</td>';
+    }
+    h += '</tr>';
+  }
+  h += '</table></body></html>';
+  const blob = new Blob([h], { type: 'text/html' });
+  window.ParrotZip.descargar(nombreHoja + '.html', blob);
+  flash('Exportado como HTML (se abre en el navegador)');
+}
+
+// barra de fórmulas
+const fx = document.getElementById('input-fx');
+fx.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const v = fx.value;
+    if (v === '') delete datos[activa];
+    else asegurar(activa).f = v;
+    refrescar();
+    marcarSinGuardar();
+    inputs[activa].focus();
+  }
+});
+fx.addEventListener('input', () => { /* edición en vivo solo al Enter */ });
+
+function flash(msg) {
+  const el = document.getElementById('estado');
+  el.textContent = msg;
+  setTimeout(() => el.textContent = 'Listo', 2500);
+}
+function marcarSinGuardar() { document.getElementById('guardado').textContent = 'Sin guardar'; }
+function marcarGuardado() { document.getElementById('guardado').textContent = 'Guardado ' + new Date().toLocaleTimeString(); }
+
+// ============ MENÚ ARCHIVO CENTRALIZADO ============
+window.ParrotMenu.montar({
+  contenedor: document.getElementById('acciones'),
+  app: 'hoja',
+  callbacks: {
+    nuevo: function () {
+      if (confirm('¿Crear hoja nueva? Se pierde lo no guardado.')) {
+        datos = {}; rango = null; construir(); marcarSinGuardar();
+      }
+    },
+    abrir: function () { document.getElementById('fileInput').click(); },
+    guardar: function () { guardar(); },
+    imprimir: function () { window.print(); },
+    plantilla: function (id) {
+      const d = window.ParrotPlantillas.datos('hoja', id);
+      if (d) {
+        datos = d.datos; filas = Math.max(filas, d.filas || 52); rango = null;
+        nombreHoja = window.ParrotPlantillas.nombre('hoja', id);
+        document.getElementById('hoja-nombre').textContent = '📊 ' + nombreHoja;
+        construir(); marcarSinGuardar();
+        flash('Plantilla cargada: ' + nombreHoja);
+      }
+    },
+    exportar: function (id) {
+      if (id === 'xlsx') exportarXLSX();
+      else if (id === 'csv') exportarCSV();
+      else if (id === 'html') exportarHTML();
+      else if (id === 'json') {
+        const blob = new Blob([JSON.stringify({ datos, filas, cols: COLS }, null, 2)], { type: 'application/json' });
+        window.ParrotZip.descargar(nombreHoja + '.json', blob);
+        flash('Exportado como .json');
+      }
+    },
+    importar: function (id) {
+      const input = document.getElementById('fileInput');
+      input.setAttribute('accept', id === 'xlsx' ? '.xlsx' : id === 'csv' ? '.csv' : '.json');
+      input.value = '';
+      input.click();
+    },
+    infoCompartir: function () {
+      let texto = nombreHoja + '\n\n';
+      for (let f = 1; f <= Math.min(filas, 40); f++) {
+        const linea = [];
+        for (let c = 1; c <= Math.min(COLS, 10); c++) linea.push(String(valorCelda(colANombre(c) + f)));
+        texto += linea.join('\t') + '\n';
+      }
+      return {
+        titulo: nombreHoja,
+        texto: texto,
+        archivo: { nombre: nombreHoja + '.xlsx', blob: window.ParrotXlsx.blob({ datos: datos, valorReal: valorReal, nombreHoja: nombreHoja }) }
+      };
+    }
+  },
+  plantillas: window.ParrotPlantillas.catalogos().hoja,
+  exportar: [
+    { id: 'xlsx', icono: '📗', etiqueta: 'Excel (.xlsx)', desc: 'libro real, fórmulas vivas' },
+    { id: 'csv', icono: '📄', etiqueta: 'CSV (.csv)', desc: 'abre en Excel, universal' },
+    { id: 'html', icono: '🌐', etiqueta: 'HTML', desc: 'tabla para ver o publicar' },
+    { id: 'json', icono: '💾', etiqueta: 'Copia de Parrot (.json)', desc: 'respaldo con todo' }
+  ],
+  importar: [
+    { id: 'xlsx', icono: '📗', etiqueta: 'Excel (.xlsx)', desc: 'valores, fórmulas y formato' },
+    { id: 'csv', icono: '📄', etiqueta: 'CSV', desc: 'desde Excel u otro programa' },
+    { id: 'json', icono: '💾', etiqueta: 'Copia de Parrot (.json)', desc: '' }
+  ]
+});
+
+// ============ AL ARRANCAR: plantilla / reciente / auto-abrir ============
+(function () {
+  var usada = window.ParrotPlantillas.consumirPendiente('hoja', function (d) {
+    datos = d.datos; filas = Math.max(filas, d.filas || 52); rango = null;
+    nombreHoja = 'Plantilla';
+    document.getElementById('hoja-nombre').textContent = '📊 ' + nombreHoja;
+    construir(); marcarSinGuardar();
+  });
+  if (usada) return;
+
+  var abrir = null;
+  try { abrir = localStorage.getItem('parrot-abrir'); } catch (e) {}
+  if (abrir) {
+    try { localStorage.removeItem('parrot-abrir'); } catch (e) {}
+    var item = window.ParrotHistorial.porId(abrir);
+    if (item && item.app === 'hoja' && item.datos) {
+      datos = item.datos.datos || {};
+      filas = item.datos.filas || 52;
+      COLS = item.datos.cols || 26;
+      nombreHoja = item.nombre;
+      document.getElementById('hoja-nombre').textContent = '📊 ' + nombreHoja;
+      construir();
+      flash('Abierto del historial: ' + item.nombre);
+      return;
+    }
+  }
+
+  try {
+    var auto = localStorage.getItem('parrot-autoabrir');
+    if (auto) {
+      localStorage.removeItem('parrot-autoabrir');
+      var input = document.getElementById('fileInput');
+      input.setAttribute('accept', auto === 'csv' ? '.csv' : '.xlsx,.csv,.json');
+      setTimeout(function () { input.click(); }, 300);
+    }
+  } catch (e) {}
+})();
+
+construir();
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><title>Pruebas Parrot Office</title></head>
+<body>
+<div id="resultados">corriendo…</div>
+<pre id="salida"></pre>
+<pre id="adjuntos"></pre>
+<script src="../oficina-zip.js"></script>
+<script src="../oficina-inflate.js"></script>
+<script src="../oficina-leer.js"></script>
+<script src="../oficina-docx.js"></script>
+<script src="../oficina-xlsx.js"></script>
+<script src="../oficina-pptx.js"></script>
+<script src="../oficina-claves.js"></script>
+<script src="../oficina-historial.js"></script>
+<script src="../oficina-plantillas.js"></script>
+<script>
+var log = [];
+function ok(n, cond, extra) { log.push((cond ? 'OK   ' : 'FALLA ') + n + (extra !== undefined ? ' :: ' + extra : '')); }
+function bytesAB64(u8) {
+  var s = '', trozo = 0x8000;
+  for (var i = 0; i < u8.length; i += trozo) s += String.fromCharCode.apply(null, u8.subarray(i, i + trozo));
+  return btoa(s);
+}
+function b64ABytes(b64) {
+  var s = atob(b64), u = new Uint8Array(s.length);
+  for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  return u;
+}
+
+// ---------- 1) exportar .docx ----------
+var htmlDoc = '<h1>Informe de prueba</h1><p>Autor: <b>Sebas</b> · fecha</p>' +
+  '<h2>1. Resumen</h2><p>Texto con <i>cursiva</i> y <u>subrayado</u> y color.</p>' +
+  '<blockquote>Una cita para el documento.</blockquote>' +
+  '<ul><li>Primer punto</li><li>Segundo punto</li></ul>' +
+  '<ol><li>Uno</li><li>Dos</li></ol>' +
+  '<table><tr><th>Producto</th><th>Precio</th></tr><tr><td>Mate</td><td>1200</td></tr></table>' +
+  '<p style="text-align:center">Centrado</p><p style="color:#ff0000">Rojo</p>';
+var docxBlob, docxB64 = '';
+try {
+  docxBlob = window.ParrotDocx.blob(htmlDoc);
+} catch (e) { ok('docx export', false, e.message); }
+docxBlob.arrayBuffer().then(function (buf) {
+  docxB64 = bytesAB64(new Uint8Array(buf));
+  ok('docx export', docxB64.length > 3000, docxB64.length + ' bytes b64');
+  seguir();
+});
+
+// ---------- 2) exportar .xlsx ----------
+var datosHoja = {
+  A1: { f: 'Presupuesto', b: true },
+  A3: { f: 'Detalle', b: true }, B3: { f: 'Cantidad', b: true }, C3: { f: 'Precio', b: true }, D3: { f: 'Subtotal', b: true },
+  A4: { f: 'Mate' }, B4: { f: '2' }, C4: { f: '1500' }, D4: { f: '=B4*C4', fmt: -1 },
+  A5: { f: 'Termo' }, B5: { f: '1' }, C5: { f: '3200' }, D5: { f: '=B5*C5', fmt: -1 },
+  A8: { f: 'TOTAL', b: true }, D8: { f: '=SUMA(D4:D5)', b: true, fmt: -1 }
+};
+function valorReal(ref) {
+  var c = datosHoja[ref];
+  if (!c) return '';
+  var crudo = String(c.f);
+  if (crudo.charAt(0) !== '=') { var n = parseFloat(crudo); return !isNaN(n) && crudo.trim() !== '' ? n : crudo; }
+  // evaluación manual para la prueba (motor real vive en hoja.html)
+  if (ref === 'D4') return 3000;
+  if (ref === 'D5') return 3200;
+  if (ref === 'D8') return 6200;
+  return 0;
+}
+var xlsxBlob, xlsxB64 = '';
+try { xlsxBlob = window.ParrotXlsx.blob({ datos: datosHoja, valorReal: valorReal, nombreHoja: 'Prueba' }); } catch (e) { ok('xlsx export', false, e.message); }
+
+// ---------- 3) exportar .pptx ----------
+var pres = { diapositivas: [
+  { fondo: '#0d1015', elementos: [
+    { id: 1, tipo: 'texto', x: 120, y: 180, w: 720, h: 90, texto: 'Hola Parrot', color: '#ffffff', bg: 'transparent', size: 44 },
+    { id: 2, tipo: 'rect', x: 120, y: 160, w: 120, h: 6, texto: '', color: '#ffffff', bg: '#ffc53d', size: 16 }
+  ]},
+  { fondo: '#ffffff', elementos: [
+    { id: 3, tipo: 'texto', x: 80, y: 50, w: 800, h: 60, texto: 'Segunda', color: '#111111', bg: 'transparent', size: 36 },
+    { id: 4, tipo: 'circulo', x: 400, y: 200, w: 160, h: 160, texto: 'Ojo', color: '#111111', bg: '#17c98a', size: 18 }
+  ]}
+] };
+var pptxBlob, pptxB64 = '';
+try { pptxBlob = window.ParrotPptx.blob(pres); } catch (e) { ok('pptx export', false, e.message); }
+
+// ---------- 4) inflate contra zlib de Node ----------
+var zlibB64 = 'eJwrKCpNTUpUSElVyMxLy0ksSbVSSEzNzC9VOLxR4fDCwysPrz28+fAuBQNDI2MTUzNzC0sA92oT7Q==';
+try {
+  var inflado = window.ParrotInflate.auto(new Uint8Array(b64ABytes(zlibB64)));
+  var txt = new TextDecoder().decode(inflado);
+  var zlibTexto = 'prueba de inflate: aeiou ñ áéíóú 0123456789';
+  ok('inflate zlib de Node', txt === zlibTexto, JSON.stringify(txt));
+  document.getElementById('salida').textContent += '\nINFLATE::' + txt;
+} catch (e) { ok('inflate zlib de Node', false, e.message); }
+
+// ---------- 5) round-trip: leer lo que generamos ----------
+function seguir() {
+  xlsxBlob.arrayBuffer().then(function (buf) {
+    xlsxB64 = bytesAB64(new Uint8Array(buf));
+    return pptxBlob.arrayBuffer();
+  }).then(function (buf) {
+    pptxB64 = bytesAB64(new Uint8Array(buf));
+
+    // round-trip docx
+    try {
+      var htmlVuelta = window.ParrotLeer.docxAHTML(b64ABytes(docxB64));
+      ok('docx round-trip', /Informe de prueba/.test(htmlVuelta) && /cursiva/.test(htmlVuelta) && /Mate/.test(htmlVuelta), htmlVuelta.slice(0, 60));
+      document.getElementById('salida').textContent += '\nRT-DOCX::' + htmlVuelta.slice(0, 400);
+    } catch (e) { ok('docx round-trip', false, e.message); }
+
+    // round-trip xlsx
+    try {
+      var vuelta = window.ParrotLeer.xlsxADatos(b64ABytes(xlsxB64));
+      ok('xlsx round-trip', vuelta.datos['A4'] && vuelta.datos['A4'].f === 'Mate' && vuelta.datos['D4'] && vuelta.datos['D4'].f === '=B4*C4',
+         JSON.stringify(vuelta.datos['A4']) + ' / ' + JSON.stringify(vuelta.datos['D4']));
+      document.getElementById('salida').textContent += '\nRT-XLSX::' + JSON.stringify(vuelta.datos).slice(0, 400);
+    } catch (e) { ok('xlsx round-trip', false, e.message); }
+
+    // round-trip pptx
+    try {
+      var pv = window.ParrotLeer.pptxAPres(b64ABytes(pptxB64));
+      var textos = [];
+      pv.diapositivas.forEach(function (d) { d.elementos.forEach(function (el) { if (el.texto) textos.push(el.texto); }); });
+      ok('pptx round-trip', pv.diapositivas.length === 2 && textos.indexOf('Hola Parrot') >= 0 && textos.indexOf('Ojo') >= 0, textos.join('|'));
+      document.getElementById('salida').textContent += '\nRT-PPTX::' + textos.join('|');
+    } catch (e) { ok('pptx round-trip', false, e.message); }
+
+    // ---------- 6) activación con clave pública ----------
+    try {
+      var r = window.ParrotClaves.activar('PARROT-W9XK-XS2C-9PC4');
+      ok('activación clave pública', r.ok, r.msg);
+      var r2 = window.ParrotClaves.activar('PARROT-W9XK-XS2C-9PC4');
+      ok('reutilización rechazada', !r2.ok, r2.msg);
+    } catch (e) { ok('activación clave pública', false, e.message); }
+
+    // ---------- 7) historial ----------
+    try {
+      var reg = window.ParrotHistorial.registrar({ app: 'doc', nombre: 'Doc de prueba', datos: { contenido: '<p>hola</p>' } });
+      var lista = window.ParrotHistorial.listar();
+      ok('historial registrar/listar', !!reg && lista.length >= 1 && lista[0].nombre === 'Doc de prueba', lista.length + ' entradas');
+      window.ParrotHistorial.fijar(reg.id);
+      ok('historial fijar', window.ParrotHistorial.porId(reg.id).fijado === true);
+    } catch (e) { ok('historial', false, e.message); }
+
+    // ---------- 8) plantillas: las 15 cargan sin error ----------
+    try {
+      var cat = window.ParrotPlantillas.catalogos();
+      var n = 0;
+      ['doc', 'hoja', 'pres'].forEach(function (app) {
+        cat[app].forEach(function (p) {
+          var d = window.ParrotPlantillas.datos(app, p.id);
+          if (!d) throw new Error('plantilla vacía: ' + app + ':' + p.id);
+          n++;
+        });
+      });
+      ok('plantillas (15)', n === 15, n + ' cargadas');
+    } catch (e) { ok('plantillas (15)', false, e.message); }
+
+    // ---------- 9) ZIP: CRC y estructura ----------
+    try {
+      var z = window.ParrotZip.zip([{ nombre: 'a.txt', datos: window.ParrotZip.texto('hola') }]);
+      var leido = window.ParrotLeer.zip(z);
+      var plano = window.ParrotLeer.zipATexto(leido, 'a.txt');
+      ok('zip round-trip', plano === 'hola', plano);
+    } catch (e) { ok('zip round-trip', false, e.message); }
+
+    document.getElementById('resultados').textContent = log.join('\n');
+    // adjuntos para validar con python-docx/openpyxl/python-pptx
+    var adj = document.getElementById('adjuntos');
+    adj.textContent = 'DOCX::' + docxB64 + '\nXLSX::' + xlsxB64 + '\nPPTX::' + pptxB64;
+    document.title = 'LISTO';
+  }).catch(function (e) {
+    document.getElementById('resultados').textContent = log.join('\n') + '\nERROR GENERAL: ' + e.message + '\n' + e.stack;
+    document.title = 'ERROR';
+  });
+}
+</script>
+</body>
+</html>

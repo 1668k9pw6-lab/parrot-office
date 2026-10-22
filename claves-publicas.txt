@@ -1,0 +1,23 @@
+PARROT OFFICE — CLAVES DE ACTIVACIÓN (un solo uso cada una)
+==========================================================
+
+Estas son las 5 claves públicas que vienen con esta copia de
+Parrot Office. Cada una activa el programa UNA sola vez por
+computadora (quedan marcadas como usadas en el navegador).
+
+  Clave 1:  PARROT-W9XK-XS2C-9PC4
+  Clave 2:  PARROT-C5A8-2CAJ-8WVT
+  Clave 3:  PARROT-EKLN-XRJN-LZNN
+  Clave 4:  PARROT-9RK9-JHSF-KWEY
+  Clave 5:  PARROT-RKJM-KCFV-6CNF
+
+Para activar: abrí Parrot Office, escribí una clave y listo.
+
+¿Querés claves propias? Corré en una terminal:
+
+    node generar-claves.js 5
+
+Te imprime 5 claves nuevas y el bloque HASHES listo para pegar
+en oficina-claves.js. En el código solo se guarda el hash
+SHA-256 de cada clave; la clave en sí no aparece en ningún
+archivo del programa.

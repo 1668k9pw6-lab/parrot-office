@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parrot Office — Activar</title>
+<style>
+  :root {
+    --verde: #17c98a; --verde-osc: #0f9c6c; --amarillo: #ffc53d; --coral: #ff6b52;
+    --fondo: #0d1015; --panel: #141a21; --borde: #232c37; --texto: #e7edf4; --suave: #8b98a8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--fondo); color: var(--texto);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    background-image: radial-gradient(900px 420px at 50% -8%, rgba(23,201,138,.10), transparent 70%);
+  }
+  body::before {
+    content: ''; position: fixed; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--verde) 0%, var(--verde) 38%, var(--amarillo) 62%, var(--coral) 100%);
+  }
+  .caja {
+    width: 420px; max-width: calc(100vw - 40px);
+    background: var(--panel); border: 1px solid var(--borde); border-radius: 16px;
+    padding: 36px 34px 30px; text-align: center;
+    box-shadow: 0 24px 70px rgba(0,0,0,.5);
+  }
+  .loro { width: 64px; height: 64px; margin-bottom: 14px; }
+  h1 { font-size: 22px; letter-spacing: -.2px; margin-bottom: 6px; }
+  h1 span { color: var(--verde); }
+  .sub { color: var(--suave); font-size: 13px; line-height: 1.6; margin-bottom: 22px; }
+  input {
+    width: 100%; text-align: center; letter-spacing: 2px; font-size: 15px; font-weight: 600;
+    font-family: 'Consolas', monospace; text-transform: uppercase;
+    background: #10161d; border: 1px solid var(--borde); border-radius: 9px;
+    color: var(--texto); padding: 11px 12px; margin-bottom: 12px;
+  }
+  input:focus { outline: none; border-color: var(--verde); }
+  button {
+    width: 100%; font-family: inherit; font-size: 14px; font-weight: 650;
+    background: var(--verde); border: 1px solid var(--verde); color: #06231a;
+    border-radius: 9px; padding: 11px; cursor: pointer;
+  }
+  button:hover { background: #1fe39c; }
+  .msg { min-height: 38px; font-size: 12.5px; margin: 12px 2px 0; line-height: 1.5; }
+  .msg.error { color: var(--coral); }
+  .msg.ok { color: var(--verde); }
+  .info {
+    margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--borde);
+    color: var(--suave); font-size: 11.5px; line-height: 1.65; text-align: left;
+  }
+  .info b { color: var(--texto); }
+  .info code { color: var(--amarillo); font-size: 11px; }
+  a { color: var(--verde); }
+</style>
+  <link rel="stylesheet" href="oficina-tema.css">
+</head>
+<body>
+
+<div class="caja">
+  <svg class="loro" viewBox="0 0 32 32" fill="none">
+    <circle cx="16" cy="16" r="15" fill="#17c98a"/>
+    <path d="M16 6c-5 0-9 4-9 9 0 2 .5 3.5 1.5 4.5C9 22 11 23 16 23s7-1 7.5-3.5c1-1 1.5-2.5 1.5-4.5 0-5-4-9-9-9z" fill="#0f9c6c"/>
+    <circle cx="12.5" cy="14" r="2" fill="#fff"/><circle cx="19.5" cy="14" r="2" fill="#fff"/>
+    <circle cx="12.8" cy="14.3" r="1" fill="#111"/><circle cx="19.2" cy="14.3" r="1" fill="#111"/>
+    <path d="M13 19.5c1.8 1.2 4.2 1.2 6 0-1 1.8-2.5 2.5-3 2.5s-2-.7-3-2.5z" fill="#ffc53d"/>
+    <path d="M9 8c-1-2-3-2-3 0s2 2 3 1zM23 8c1-2 3-2 3 0s-2 2-3 1z" fill="#ffc53d"/>
+  </svg>
+  <h1>Activar <span>Parrot Office</span></h1>
+  <p class="sub">Escribí tu clave de activación para entrar.<br> Cada clave sirve <b>una sola vez</b> en esta computadora.</p>
+
+  <input id="clave" placeholder="PARROT-XXXX-XXXX-XXXX" maxlength="22" autocomplete="off" spellcheck="false">
+  <button id="btn">Entrar</button>
+  <div id="msg" class="msg"></div>
+
+  <div class="info">
+    <b>¿Dónde está mi clave?</b> En el archivo <code>claves-publicas.txt</code> de la carpeta del proyecto (o generá las tuyas con <code>node generar-claves.js</code>).<br>
+    <b>¿Ya la usaste?</b> No se puede reutilizar: cada clave sirve una sola vez por computadora.<br>
+    <b>Sin internet:</b> la validación se hace en esta PC, tus documentos no salen de acá.
+  </div>
+</div>
+
+<script src="oficina-claves.js"></script>
+<script>
+var input = document.getElementById('clave');
+var msg = document.getElementById('msg');
+
+function entrar() {
+  var r = window.ParrotClaves.activar(input.value);
+  msg.textContent = r.msg;
+  msg.className = 'msg ' + (r.ok ? 'ok' : 'error');
+  if (r.ok) {
+    setTimeout(function () { location.href = 'index.html'; }, 900);
+  } else {
+    input.select();
+  }
+}
+
+document.getElementById('btn').addEventListener('click', entrar);
+input.addEventListener('keydown', function (e) { if (e.key === 'Enter') entrar(); });
+input.focus();
+
+// si ya está activado, no mostrar esta pantalla
+if (window.ParrotClaves.estado().activado) location.href = 'index.html';
+</script>
+</body>
+</html>

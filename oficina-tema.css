@@ -1,0 +1,281 @@
+/* ============================================================
+   Parrot Office — tema compartido "Loro"
+   Serio y minimalista, pero que llame la atención.
+   Se carga DESPUES del <style> de cada pagina, asi que pisa
+   las variables y pule lo que ya existe sin romper la maqueta.
+   ============================================================ */
+
+:root {
+  /* tinta y papel: base sobria */
+  --fondo: #0d1015;
+  --panel: #141a21;
+  --borde: #232c37;
+  --texto: #e7edf4;
+  --suave: #8b98a8;
+
+  /* el loro: verde loro + mango. Es el unico color que "grita" */
+  --verde: #17c98a;
+  --verde-osc: #0f9c6c;
+  --amarillo: #ffc53d;
+  --coral: #ff6b52;
+
+  --radio: 10px;
+  --sombra: 0 1px 0 rgba(255,255,255,.03);
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+  /* un velo muy tenue para que el negro no sea plano */
+  background-image: radial-gradient(1200px 500px at 50% -10%, rgba(23,201,138,.07), transparent 70%);
+  background-repeat: no-repeat;
+  letter-spacing: .1px;
+}
+
+/* ---------- la firma: pluma de loro arriba de todo ---------- */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  z-index: 99999;
+  background: linear-gradient(90deg,
+    var(--verde) 0%, var(--verde) 38%,
+    var(--amarillo) 62%, var(--coral) 100%);
+}
+
+/* ---------- cabeceras ---------- */
+header { position: relative; }
+header h1 {
+  font-weight: 650;
+  letter-spacing: -.2px;
+}
+header h1 span { color: var(--verde); }
+
+/* ---------- botones: planos, con un punto de color ---------- */
+button, .btn, input[type="button"], input[type="submit"] {
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--texto);
+  background: #1b232c;
+  border: 1px solid var(--borde);
+  border-radius: 7px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: border-color .12s, color .12s, background .12s;
+  box-shadow: var(--sombra);
+}
+button:hover, .btn:hover {
+  border-color: var(--verde);
+  color: #fff;
+}
+button:active { transform: translateY(1px); }
+
+/* el boton "principal" de cada barra: el que tiene la clase .principal
+   o el que esta marcado con data-primario */
+button.principal, button[data-primario] {
+  background: var(--verde);
+  border-color: var(--verde);
+  color: #06231a;
+  font-weight: 600;
+}
+button.principal:hover, button[data-primario]:hover {
+  background: #1fe39c;
+  border-color: #1fe39c;
+  color: #06231a;
+}
+
+/* ---------- campos ---------- */
+input[type="text"], input[type="search"], input[type="number"], select, textarea {
+  font-family: inherit;
+  background: #10161d;
+  border: 1px solid var(--borde);
+  border-radius: 7px;
+  color: var(--texto);
+  padding: 5px 9px;
+  font-size: 12.5px;
+}
+input:focus, select:focus, textarea:focus, [contenteditable]:focus {
+  outline: none;
+  border-color: var(--verde);
+}
+
+/* ---------- enlaces ---------- */
+a { color: var(--verde); }
+
+/* ---------- foco visible y accesible ---------- */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--verde);
+  outline-offset: 1px;
+}
+
+/* ---------- barras de desplazamiento, finitas ---------- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #26303c; border-radius: 6px; border: 2px solid var(--fondo); }
+::-webkit-scrollbar-thumb:hover { background: #33404f; }
+
+/* ---------- portada (index) ---------- */
+.card {
+  border-radius: var(--radio);
+  box-shadow: var(--sombra);
+  position: relative;
+  overflow: hidden;
+}
+.card::after {
+  /* hilo de color en el borde superior: sutil, pero las distingue */
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--verde), var(--amarillo));
+  opacity: 0;
+  transition: opacity .15s;
+}
+.card:hover::after { opacity: 1; }
+.card:hover { border-color: var(--verde); transform: translateY(-3px); }
+.card .icono { font-size: 34px; line-height: 1; }
+.card h2 em { color: var(--verde); font-style: normal; }
+.card .estado { color: var(--verde); font-variant-numeric: tabular-nums; }
+
+/* ---------- pie ---------- */
+footer { color: var(--suave); }
+
+/* ---------- impresion: el tema oscuro no se imprime ---------- */
+@media print {
+  body::before { display: none !important; }
+  body { background: #fff !important; color: #000 !important; background-image: none !important; }
+}
+
+/* ============================================================
+   Menú Archivo centralizado (oficina-menu.js)
+   ============================================================ */
+.pm-btn { font-weight: 600; }
+.pm-btn.orion { border-color: rgba(23,201,138,.45); color: var(--verde); }
+
+.parrot-menu {
+  position: fixed; z-index: 9000;
+  width: 300px; max-height: min(560px, calc(100vh - 90px));
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  box-shadow: 0 18px 60px rgba(0,0,0,.6);
+  padding: 6px;
+}
+.pm-sep {
+  font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--suave); padding: 10px 10px 4px;
+}
+.pm-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: none; border-radius: 8px; padding: 7px 10px; box-shadow: none;
+}
+.pm-item:hover { background: rgba(23,201,138,.10); color: var(--texto); border-color: transparent; }
+.pm-item .pm-ico { font-size: 16px; width: 22px; text-align: center; flex-shrink: 0; }
+.pm-item .pm-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.pm-item .pm-txt b { font-size: 12.5px; font-weight: 600; }
+.pm-item .pm-txt i { font-style: normal; font-size: 11px; color: var(--suave); }
+.pm-item.peligro:hover { background: rgba(255,107,82,.12); }
+
+/* ---------- hoja de compartir ---------- */
+.parrot-share-fondo {
+  position: fixed; inset: 0; z-index: 9500;
+  background: rgba(4,7,10,.66); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center;
+}
+.parrot-share {
+  width: 400px; max-width: calc(100vw - 32px); max-height: calc(100vh - 40px); overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 14px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.7); padding: 8px;
+}
+.ps-cabeza { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px 4px; }
+.ps-cabeza b { font-size: 15px; }
+.ps-x { background: none; border: none; box-shadow: none; font-size: 14px; padding: 4px 8px; }
+.ps-sub { color: var(--suave); font-size: 11.5px; padding: 0 10px 8px; border-bottom: 1px solid var(--borde); margin-bottom: 6px; }
+.ps-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+  background: none; border: none; border-radius: 9px; padding: 9px 10px; box-shadow: none;
+}
+.ps-item:hover { background: rgba(23,201,138,.10); border-color: transparent; }
+.ps-ico { font-size: 20px; width: 26px; text-align: center; }
+.ps-txt { display: flex; flex-direction: column; gap: 1px; }
+.ps-txt b { font-size: 13px; font-weight: 600; }
+.ps-txt i { font-style: normal; font-size: 11px; color: var(--suave); }
+.ps-nota { color: var(--suave); font-size: 11px; line-height: 1.5; padding: 10px; margin-top: 6px; border-top: 1px solid var(--borde); }
+
+/* ============================================================
+   Portada: secciones nuevas (recientes, plantillas, accesos)
+   ============================================================ */
+.seccion { padding: 0 40px 10px; max-width: 1200px; width: 100%; margin: 0 auto; }
+.seccion-cabeza { display: flex; align-items: baseline; gap: 12px; margin: 26px 0 14px; flex-wrap: wrap; }
+.seccion-cabeza h2 { font-size: 17px; font-weight: 650; letter-spacing: -.1px; }
+.seccion-cabeza .cuenta { color: var(--suave); font-size: 12px; }
+.seccion-cabeza .espaciado { margin-left: auto; display: flex; gap: 8px; }
+.mini-btn { font-size: 11.5px; padding: 4px 10px; }
+
+.buscador { display: flex; gap: 10px; align-items: center; margin: 4px 0 6px; }
+.buscador input { flex: 1; }
+
+.recientes { display: grid; grid-template-columns: repeat(auto-fill, minmax(285px, 1fr)); gap: 12px; }
+.reciente {
+  display: flex; gap: 12px; align-items: flex-start; text-align: left;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 11px;
+  padding: 13px 14px; cursor: pointer; color: var(--texto); text-decoration: none;
+  transition: border-color .13s, transform .13s;
+}
+.reciente:hover { border-color: var(--verde); transform: translateY(-2px); }
+.reciente .r-ico { font-size: 24px; line-height: 1.2; }
+.reciente .r-cuerpo { min-width: 0; flex: 1; }
+.reciente .r-nombre { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reciente .r-meta { font-size: 11px; color: var(--suave); margin-top: 2px; }
+.reciente .r-previa { font-size: 11.5px; color: var(--suave); margin-top: 6px; line-height: 1.45; max-height: 2.9em; overflow: hidden; }
+.reciente .r-pin {
+  background: none; border: none; box-shadow: none; padding: 2px 6px; font-size: 13px;
+  color: var(--suave); flex-shrink: 0;
+}
+.reciente .r-pin.on { color: var(--amarillo); }
+.reciente.fijado { border-color: rgba(255,197,61,.4); }
+.vacio {
+  border: 1px dashed var(--borde); border-radius: 11px; padding: 26px; text-align: center;
+  color: var(--suave); font-size: 13px; grid-column: 1 / -1;
+}
+
+.plantillas { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.plantilla {
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-start; text-align: left;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 11px;
+  padding: 14px; cursor: pointer; color: var(--texto);
+}
+.plantilla:hover { border-color: var(--verde); }
+.plantilla .p-ico { font-size: 22px; }
+.plantilla .p-nombre { font-size: 12.5px; font-weight: 600; }
+.plantilla .p-app { font-size: 10.5px; color: var(--suave); }
+.plantilla .p-app b { color: var(--verde); font-weight: 600; }
+
+.accesos { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
+.acceso {
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 11px;
+  padding: 12px 14px; cursor: pointer; color: var(--texto); font-size: 12.5px; font-weight: 600;
+}
+.acceso:hover { border-color: var(--verde); }
+.acceso .a-ico { font-size: 18px; }
+
+.atajos { display: flex; flex-wrap: wrap; gap: 8px 18px; padding: 4px 0 8px; }
+.atajos span { font-size: 11.5px; color: var(--suave); }
+.atajos kbd {
+  background: #10161d; border: 1px solid var(--borde); border-bottom-width: 2px;
+  border-radius: 5px; padding: 1px 6px; font-size: 10.5px; font-family: inherit; color: var(--texto);
+}
+
+/* estado de activación en la portada */
+.activacion {
+  display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--suave);
+  background: var(--panel); border: 1px solid var(--borde); border-radius: 999px; padding: 5px 12px;
+}
+.activacion .punto { width: 7px; height: 7px; border-radius: 50%; background: var(--verde); }

@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parrot Office — Presentaciones</title>
+<style>
+  :root {
+    --verde: #17c98a;
+    --verde-osc: #0f9c6c;
+    --amarillo: #ffc53d;
+    --fondo: #101414;
+    --panel: #1a2222;
+    --borde: #2c3a3a;
+    --texto: #e8f0ee;
+    --suave: #9db3ad;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--fondo); color: var(--texto); font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  header { background: var(--panel); border-bottom: 1px solid var(--borde); padding: 8px 14px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+  header a { color: var(--suave); text-decoration: none; font-size: 13px; }
+  header a:hover { color: var(--verde); }
+  h1 { font-size: 16px; }
+  h1 span { color: var(--verde); }
+  .acciones { margin-left: auto; display: flex; gap: 6px; }
+  button, select { background: var(--panel); color: var(--texto); border: 1px solid var(--borde); border-radius: 6px; padding: 5px 10px; font-size: 12.5px; cursor: pointer; }
+  button:hover { border-color: var(--verde); color: var(--verde); }
+  button.presentar { background: var(--verde); color: #06210f; border-color: var(--verde); font-weight: 700; }
+  .cuerpo { flex: 1; display: flex; min-height: 0; }
+  .miniaturas { width: 168px; background: var(--panel); border-right: 1px solid var(--borde); overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+  .mini { position: relative; border: 2px solid var(--borde); border-radius: 6px; aspect-ratio: 16/9; cursor: pointer; overflow: hidden; background: #fff; }
+  .mini.activa { border-color: var(--verde); }
+  .mini .num { position: absolute; left: 4px; top: 2px; font-size: 10px; color: #666; z-index: 2; }
+  .area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .toolbar { background: var(--panel); border-bottom: 1px solid var(--borde); padding: 5px 14px; display: flex; flex-wrap: wrap; gap: 5px; flex-shrink: 0; align-items: center; }
+  .toolbar .grupo { display: flex; gap: 4px; padding-right: 8px; margin-right: 4px; border-right: 1px solid var(--borde); align-items: center; }
+  .toolbar .grupo:last-child { border-right: none; }
+  .toolbar label { font-size: 11px; color: var(--suave); }
+  input[type="color"] { width: 32px; height: 28px; border: 1px solid var(--borde); border-radius: 6px; background: var(--panel); cursor: pointer; padding: 2px; }
+  input[type="number"] { width: 52px; background: var(--fondo); color: var(--texto); border: 1px solid var(--borde); border-radius: 6px; padding: 5px; font-size: 12px; }
+  .lienzo-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; overflow: auto; }
+  .lienzo { width: 960px; height: 540px; position: relative; background: #fff; transform-origin: center center; box-shadow: 0 10px 50px rgba(0,0,0,.55); flex-shrink: 0; }
+  .el { position: absolute; cursor: move; user-select: none; }
+  .el.texto { padding: 4px 6px; word-break: break-word; overflow: hidden; }
+  .el.sel { outline: 2px dashed var(--verde); outline-offset: 2px; }
+  .el .handle { position: absolute; right: -5px; bottom: -5px; width: 10px; height: 10px; background: var(--verde); border-radius: 2px; cursor: nwse-resize; }
+  footer { background: var(--panel); border-top: 1px solid var(--borde); padding: 5px 14px; font-size: 12px; color: var(--suave); display: flex; gap: 18px; flex-shrink: 0; }
+  .overlay { position: fixed; inset: 0; background: #000; display: none; z-index: 50; align-items: center; justify-content: center; }
+  .overlay.on { display: flex; }
+  .overlay .pantalla { width: 960px; height: 540px; position: relative; background: #fff; }
+  .overlay .salir { position: absolute; top: 12px; right: 16px; z-index: 60; }
+</style>
+  <link rel="stylesheet" href="oficina-tema.css">
+</head>
+<body>
+
+<header>
+  <a href="index.html">← Parrot Office</a>
+  <h1>Presentaciones</h1>
+  <div class="acciones" id="acciones">
+    <button class="presentar principal" onclick="presentar()">▶ Presentar</button>
+    <button class="principal" onclick="guardar()">Guardar</button>
+    <input type="file" id="fileInput" accept=".json,.pptx" style="display:none">
+  </div>
+</header>
+
+<div class="cuerpo">
+  <div class="miniaturas" id="minis"></div>
+  <div class="area">
+    <div class="toolbar">
+      <div class="grupo">
+        <button onclick="nuevaDiapo()">+ Diapositiva</button>
+        <button onclick="duplicarDiapo()">Duplicar</button>
+        <button onclick="borrarDiapo()">Eliminar</button>
+        <button onclick="moverDiapo(-1)" title="Mover a la izquierda">←</button>
+        <button onclick="moverDiapo(1)" title="Mover a la derecha">→</button>
+      </div>
+      <div class="grupo">
+        <button onclick="agregar('texto')">+ Texto</button>
+        <button onclick="agregar('rect')">+ Rectángulo</button>
+        <button onclick="agregar('circulo')">+ Círculo</button>
+        <button onclick="subirImagen()">+ Imagen</button>
+        <input type="file" id="fileImg" accept="image/*" hidden>
+        <button onclick="borrarElemento()">🗑 Elemento</button>
+      </div>
+      <div class="grupo">
+        <label>Texto</label><input type="color" id="cTexto" value="#111111" oninput="prop('color',this.value)">
+        <label>Fondo</label><input type="color" id="cFondo" value="#17c98a" oninput="prop('bg',this.value)">
+        <label>Tamaño</label><input type="number" id="tTam" value="16" min="8" max="96" onchange="prop('size',+this.value)">
+      </div>
+      <div class="grupo">
+        <button onclick="alinear('izq')" title="Alinear a la izquierda de la diapositiva">⇤</button>
+        <button onclick="alinear('centroh')" title="Centrar horizontal">↔</button>
+        <button onclick="alinear('der')" title="Alinear a la derecha">⇥</button>
+        <button onclick="alinear('arriba')" title="Alinear arriba">⤒</button>
+        <button onclick="alinear('mediov')" title="Centrar vertical">↕</button>
+        <button onclick="alinear('abajo')" title="Alinear abajo">⤓</button>
+        <button onclick="traerFrente()" title="Traer al frente">⤒</button>
+        <button onclick="enviarFondo()" title="Enviar al fondo">⤓</button>
+      </div>
+      <div class="grupo">
+        <button onclick="fondoDiapo()">Color de diapositiva</button>
+        <input type="color" id="cFondoDiapo" value="#ffffff" oninput="cambiarFondoDiapo(this.value)">
+      </div>
+    </div>
+    <div class="lienzo-wrap" id="wrap">
+      <div class="lienzo" id="lienzo"></div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <button class="salir" onclick="salirPresentar()">✕ Salir (Esc)</button>
+  <div class="pantalla" id="pantalla"></div>
+</div>
+
+<footer>
+  <span id="pres-nombre" title="Clic para cambiar el nombre" style="cursor:pointer">🎬 Presentación</span>
+  <span id="estado" class="ok">Listo</span>
+  <span id="info">Arrastrá los elementos · ← → para cambiar de diapositiva al presentar</span>
+  <span id="guardado">Sin guardar</span>
+</footer>
+
+<script src="oficina-zip.js"></script>
+<script src="oficina-inflate.js"></script>
+<script src="oficina-leer.js"></script>
+<script src="oficina-pptx.js"></script>
+<script src="oficina-claves.js"></script>
+<script src="oficina-historial.js"></script>
+<script src="oficina-plantillas.js"></script>
+<script src="oficina-menu.js"></script>
+<script>
+// ---- puerta de activación ----
+if (!window.ParrotClaves.estado().activado) location.href = 'activar.html';
+</script>
+<script>
+// ============ MODELO ============
+let pres = { diapositivas: [{ fondo: '#ffffff', elementos: [] }], actual: 0 };
+let selId = null;
+let contador = 1;
+let nombrePres = 'Presentación';
+try { nombrePres = localStorage.getItem('parrot-pres-nombre') || nombrePres; } catch (e) {}
+document.getElementById('pres-nombre').textContent = '🎬 ' + nombrePres;
+document.getElementById('pres-nombre').addEventListener('click', function () {
+  const n = prompt('Nombre de la presentación:', nombrePres);
+  if (n && n.trim()) {
+    nombrePres = n.trim().slice(0, 60);
+    try { localStorage.setItem('parrot-pres-nombre', nombrePres); } catch (e) {}
+    document.getElementById('pres-nombre').textContent = '🎬 ' + nombrePres;
+    marcarSinGuardar();
+  }
+});
+
+try {
+  const g = localStorage.getItem('parrot-pres');
+  if (g) { const d = JSON.parse(g); pres = d.pres || pres; contador = d.contador || 1; }
+} catch (e) {}
+
+const lienzo = document.getElementById('lienzo');
+const minis = document.getElementById('minis');
+
+function diapo() { return pres.diapositivas[pres.actual]; }
+function elemSel() { const d = diapo(); return d.elementos.find(e => e.id === selId) || null; }
+function marcarSinGuardar() { document.getElementById('guardado').textContent = 'Sin guardar'; }
+function marcarGuardado() { document.getElementById('guardado').textContent = 'Guardado ' + new Date().toLocaleTimeString(); }
+function flash(m) { const el = document.getElementById('estado'); el.textContent = m; setTimeout(() => el.textContent = 'Listo', 2500); }
+
+// ============ RENDER ============
+function render() {
+  const d = diapo();
+  lienzo.style.background = d.fondo;
+  lienzo.innerHTML = '';
+  for (const el of d.elementos) {
+    const div = document.createElement('div');
+    div.className = 'el ' + el.tipo + (el.id === selId ? ' sel' : '');
+    div.style.left = el.x + 'px';
+    div.style.top = el.y + 'px';
+    div.style.width = el.w + 'px';
+    div.style.height = el.h + 'px';
+    div.style.color = el.color;
+    div.style.background = el.bg;
+    div.style.fontSize = el.size + 'px';
+    div.style.lineHeight = el.tipo === 'texto' ? '1.3' : '';
+    if (el.tipo === 'circulo') div.style.borderRadius = '50%';
+    if (el.tipo === 'texto') div.contentEditable = 'true';
+    if (el.tipo === 'imagen') div.innerHTML = '<img src="' + el.src + '" style="width:100%;height:100%;object-fit:contain;">';
+    else div.textContent = el.texto || '';
+    if (el.id === selId) {
+      const h = document.createElement('div');
+      h.className = 'handle';
+      div.appendChild(h);
+    }
+    div.addEventListener('mousedown', e => empezarDrag(e, el));
+    if (el.tipo === 'texto') {
+      div.addEventListener('input', () => { el.texto = div.innerText; marcarSinGuardar(); });
+      div.addEventListener('blur', () => { el.texto = div.innerText; if (!el.texto.trim()) el.texto = 'Texto'; div.textContent = el.texto; });
+    }
+    lienzo.appendChild(div);
+  }
+  renderMinis();
+  const el = elemSel();
+  if (el) {
+    document.getElementById('cTexto').value = el.color;
+    document.getElementById('cFondo').value = el.bg;
+    document.getElementById('tTam').value = el.size;
+  }
+  document.getElementById('cFondoDiapo').value = d.fondo;
+  ajustarEscala();
+}
+
+function renderMinis() {
+  minis.innerHTML = '';
+  pres.diapositivas.forEach((d, i) => {
+    const m = document.createElement('div');
+    m.className = 'mini' + (i === pres.actual ? ' activa' : '');
+    m.innerHTML = '<span class="num">' + (i + 1) + '</span>';
+    const inner = document.createElement('div');
+    inner.style.cssText = 'position:absolute;inset:0;background:' + d.fondo + ';';
+    // versión miniatura de los elementos (escala 168/960 = 0.175)
+    for (const el of d.elementos) {
+      const e2 = document.createElement('div');
+      const s = 168 / 960;
+      e2.style.cssText = 'position:absolute;left:' + (el.x * s) + 'px;top:' + (el.y * s) + 'px;width:' + (el.w * s) + 'px;height:' + (el.h * s) + 'px;background:' + el.bg + ';color:' + el.color + ';font-size:' + (el.size * s) + 'px;overflow:hidden;' + (el.tipo === 'circulo' ? 'border-radius:50%;' : '');
+      if (el.tipo === 'imagen') e2.innerHTML = '<img src="' + el.src + '" style="width:100%;height:100%;object-fit:contain;">';
+      else e2.textContent = el.texto || '';
+      inner.appendChild(e2);
+    }
+    m.appendChild(inner);
+    m.addEventListener('click', () => { pres.actual = i; selId = null; render(); });
+    minis.appendChild(m);
+  });
+}
+
+function ajustarEscala() {
+  const wrap = document.getElementById('wrap');
+  const escala = Math.min(1, (wrap.clientWidth - 40) / 960, (wrap.clientHeight - 40) / 540);
+  lienzo.style.transform = 'scale(' + Math.max(0.25, escala) + ')';
+}
+
+// ============ DRAG & RESIZE ============
+let drag = null;
+function empezarDrag(e, el) {
+  e.preventDefault();
+  e.stopPropagation();
+  selId = el.id;
+  const handle = e.target.classList.contains('handle');
+  drag = { el, handle, startX: e.clientX, startY: e.clientY, ox: el.x, oy: el.y, ow: el.w, oh: el.h };
+  render();
+  document.addEventListener('mousemove', moverDrag);
+  document.addEventListener('mouseup', soltarDrag);
+}
+function moverDrag(e) {
+  if (!drag) return;
+  const escala = parseFloat(lienzo.style.transform.replace(/[^0-9.]/g, '')) || 1;
+  const dx = (e.clientX - drag.startX) / escala;
+  const dy = (e.clientY - drag.startY) / escala;
+  if (drag.handle) {
+    drag.el.w = Math.max(30, Math.round(drag.ow + dx));
+    drag.el.h = Math.max(20, Math.round(drag.oh + dy));
+  } else {
+    drag.el.x = Math.round(Math.min(960 - 40, Math.max(-drag.el.w / 2, drag.ox + dx)));
+    drag.el.y = Math.round(Math.min(540 - 20, Math.max(-drag.el.h / 2, drag.oy + dy)));
+  }
+  render();
+}
+function soltarDrag() {
+  if (drag) marcarSinGuardar();
+  drag = null;
+  document.removeEventListener('mousemove', moverDrag);
+  document.removeEventListener('mouseup', soltarDrag);
+}
+lienzo.addEventListener('mousedown', e => { if (e.target === lienzo) { selId = null; render(); } });
+
+// ============ ACCIONES ============
+function nuevaDiapo() {
+  pres.diapositivas.splice(pres.actual + 1, 0, { fondo: '#ffffff', elementos: [] });
+  pres.actual++;
+  selId = null;
+  render();
+  marcarSinGuardar();
+}
+function duplicarDiapo() {
+  const copia = JSON.parse(JSON.stringify(diapo()));
+  pres.diapositivas.splice(pres.actual + 1, 0, copia);
+  pres.actual++;
+  render();
+  marcarSinGuardar();
+}
+function borrarDiapo() {
+  if (pres.diapositivas.length <= 1) { flash('Debe quedar al menos una'); return; }
+  if (!confirm('¿Eliminar la diapositiva ' + (pres.actual + 1) + '?')) return;
+  pres.diapositivas.splice(pres.actual, 1);
+  pres.actual = Math.max(0, pres.actual - 1);
+  selId = null;
+  render();
+  marcarSinGuardar();
+}
+function agregar(tipo) {
+  const el = {
+    id: contador++, tipo,
+    x: tipo === 'texto' ? 80 : 360,
+    y: tipo === 'texto' ? 60 : 200,
+    w: tipo === 'texto' ? 300 : 220,
+    h: tipo === 'texto' ? 80 : 120,
+    texto: tipo === 'texto' ? 'Texto' : '',
+    color: tipo === 'texto' ? '#111111' : '#ffffff',
+    bg: tipo === 'texto' ? 'transparent' : '#17c98a',
+    size: tipo === 'texto' ? 24 : 16
+  };
+  diapo().elementos.push(el);
+  selId = el.id;
+  render();
+  marcarSinGuardar();
+}
+function borrarElemento() {
+  const d = diapo();
+  const i = d.elementos.findIndex(e => e.id === selId);
+  if (i < 0) { flash('Elegí un elemento primero'); return; }
+  d.elementos.splice(i, 1);
+  selId = null;
+  render();
+  marcarSinGuardar();
+}
+function subirImagen() {
+  fileImg.click();
+}
+
+fileImg.addEventListener('change', e => {
+  const input = e.target;
+  const f = input.files && input.files[0];
+  if (!f) return;
+  // objecion 1 del critico: validar que sea realmente una imagen
+  if (!/^image\//.test(f.type)) { flash('Ese archivo no es una imagen'); input.value = ''; return; }
+  const r = new FileReader();
+  r.onload = () => {
+    // objecion 3 del critico: resetear el input para poder elegir el mismo archivo otra vez
+    input.value = '';
+    // objecion 2 del critico: bajar el peso antes de guardar (localStorage tiene cupo finito)
+    redimensionarImagen(r.result, url => {
+      const el = {
+        id: contador++,
+        tipo: 'imagen',
+        src: url,
+        x: 360,
+        y: 200,
+        w: 220,
+        h: 160,
+        color: '#ffffff',
+        bg: 'transparent',
+        size: 16
+      };
+      diapo().elementos.push(el);
+      selId = el.id;
+      render();
+      marcarSinGuardar();
+    });
+  };
+  r.onerror = () => { flash('No pude leer la imagen'); input.value = ''; };
+  r.readAsDataURL(f);
+});
+
+// Limita el lado largo de la imagen a MAX px para no reventar el cupo de localStorage.
+function redimensionarImagen(dataURL, listo) {
+  const MAX = 1600;
+  const img = new Image();
+  img.onload = () => {
+    const lado = Math.max(img.width, img.height);
+    if (!lado || lado <= MAX) { listo(dataURL); return; }
+    const k = MAX / lado;
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width * k));
+    c.height = Math.max(1, Math.round(img.height * k));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    try { listo(c.toDataURL('image/jpeg', 0.85)); }
+    catch (err) { listo(dataURL); }
+  };
+  img.onerror = () => listo(dataURL);
+  img.src = dataURL;
+}
+function cambiarFondoDiapo(v) { diapo().fondo = v; render(); marcarSinGuardar(); }
+function fondoDiapo() { flash('Usá el selector de al lado'); }
+
+// ---------- propiedades del elemento elegido ----------
+// (los botones de color y tamaño llamaban a prop() y no existía: quedaron rotos)
+function prop(clave, valor) {
+  const el = elemSel();
+  if (!el) { flash('Elegí un elemento primero'); return; }
+  el[clave] = valor;
+  render();
+  marcarSinGuardar();
+}
+
+// ---------- reordenar diapositivas ----------
+function moverDiapo(direccion) {
+  const i = pres.actual, j = i + direccion;
+  if (j < 0 || j >= pres.diapositivas.length) return;
+  const d = pres.diapositivas[i];
+  pres.diapositivas.splice(i, 1);
+  pres.diapositivas.splice(j, 0, d);
+  pres.actual = j;
+  render();
+  marcarSinGuardar();
+}
+
+// ---------- alinear elementos en la diapositiva (960x540) ----------
+function alinear(modo) {
+  const el = elemSel();
+  if (!el) { flash('Elegí un elemento primero'); return; }
+  if (modo === 'izq') el.x = 40;
+  else if (modo === 'der') el.x = 960 - 40 - el.w;
+  else if (modo === 'centroh') el.x = Math.round((960 - el.w) / 2);
+  else if (modo === 'arriba') el.y = 30;
+  else if (modo === 'abajo') el.y = 540 - 30 - el.h;
+  else if (modo === 'mediov') el.y = Math.round((540 - el.h) / 2);
+  render();
+  marcarSinGuardar();
+}
+
+// ---------- orden de capas ----------
+function traerFrente() {
+  const d = diapo();
+  const i = d.elementos.findIndex(e => e.id === selId);
+  if (i < 0) { flash('Elegí un elemento primero'); return; }
+  d.elementos.push(d.elementos.splice(i, 1)[0]);
+  render();
+  marcarSinGuardar();
+}
+function enviarFondo() {
+  const d = diapo();
+  const i = d.elementos.findIndex(e => e.id === selId);
+  if (i < 0) { flash('Elegí un elemento primero'); return; }
+  d.elementos.unshift(d.elementos.splice(i, 1)[0]);
+  render();
+  marcarSinGuardar();
+}
+
+// ============ GUARDADO ============
+function guardar() {
+  try {
+    localStorage.setItem('parrot-pres', JSON.stringify({ pres, contador }));
+    marcarGuardado();
+    registrarEnHistorial();
+    flash('Guardado en este equipo');
+  } catch (e) { flash('No se pudo: ' + e.message); }
+}
+
+function registrarEnHistorial() {
+  try {
+    window.ParrotHistorial.registrar({
+      app: 'pres',
+      nombre: nombrePres,
+      datos: { pres: pres, contador: contador }
+    });
+  } catch (e) {}
+}
+document.getElementById('fileInput').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const esPptx = /\.pptx$/i.test(f.name);
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      if (esPptx) {
+        const leido = window.ParrotLeer.pptxAPres(new Uint8Array(r.result));
+        pres = leido;
+        contador = leido.contador;
+        selId = null;
+        nombrePres = f.name.replace(/\.pptx$/i, '');
+        document.getElementById('pres-nombre').textContent = '🎬 ' + nombrePres;
+        render();
+        registrarEnHistorial();
+        flash('PowerPoint abierto: ' + leido.diapositivas.length + ' diapositivas');
+        return;
+      }
+      const d = JSON.parse(r.result);
+      pres = d.pres || pres;
+      contador = d.contador || 1;
+      pres.actual = 0;
+      selId = null;
+      nombrePres = f.name.replace(/\.json$/i, '');
+      document.getElementById('pres-nombre').textContent = '🎬 ' + nombrePres;
+      render();
+      registrarEnHistorial();
+      flash('Abierto: ' + f.name);
+    } catch (err) { flash('Archivo no válido'); }
+  };
+  if (esPptx) r.readAsArrayBuffer(f); else r.readAsText(f);
+});
+function exportarJSON() {
+  const blob = new Blob([JSON.stringify({ pres, contador }, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nombrePres + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  flash('Exportado');
+}
+
+function exportarPPTX() {
+  try {
+    const blob = window.ParrotPptx.blob(pres);
+    window.ParrotZip.descargar(nombrePres + '.pptx', blob);
+    flash('Exportado como .pptx (' + pres.diapositivas.length + ' diapositivas)');
+  } catch (e) { flash('No pude exportar el .pptx: ' + e.message); }
+}
+
+// Presentacion navegable en un solo HTML (offline, sin depender de Parrot)
+function exportarHTMLPres() {
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const slides = pres.diapositivas.map((d, i) => {
+    const els = d.elementos.map(el => {
+      const base = 'position:absolute;left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.w + 'px;height:' + el.h + 'px;color:' + el.color + ';font-size:' + el.size + 'px;';
+      if (el.tipo === 'imagen') return '<img src="' + el.src + '" style="' + base + 'object-fit:contain;">';
+      if (el.tipo === 'circulo') return '<div style="' + base + 'background:' + el.bg + ';border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;">' + esc(el.texto || '') + '</div>';
+      if (el.tipo === 'rect') return '<div style="' + base + 'background:' + el.bg + ';display:flex;align-items:center;justify-content:center;text-align:center;">' + esc(el.texto || '') + '</div>';
+      return '<div style="' + base + 'padding:4px 6px;line-height:1.3;word-break:break-word;overflow:hidden;white-space:pre-wrap;">' + esc(el.texto || '') + '</div>';
+    }).join('');
+    return '<div class="diapo" data-i="' + i + '" style="background:' + d.fondo + '">' + els + '</div>';
+  }).join('');
+
+  const doc = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Presentacion Parrot</title><style>' +
+    'body{margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Segoe UI,sans-serif;overflow:hidden}' +
+    '.diapo{display:none;width:960px;height:540px;position:relative;box-shadow:0 10px 60px rgba(0,0,0,.7);transform-origin:center}' +
+    '.diapo.on{display:block}' +
+    '.nav{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);color:#9db3ad;font-size:13px;background:rgba(0,0,0,.5);padding:6px 14px;border-radius:20px}' +
+    '</style></head><body>' + slides +
+    '<div class="nav" id="nav"></div><script>' +
+    'var i=0,d=document.querySelectorAll(".diapo"),n=document.getElementById("nav");' +
+    'function ver(){for(var k=0;k<d.length;k++)d[k].classList.toggle("on",k===i);n.textContent=(i+1)+" / "+d.length+"  ·  ← → para navegar";' +
+    'var s=Math.min(window.innerWidth/960,window.innerHeight/540);d[i].style.transform="scale("+s+")";}' +
+    'document.addEventListener("keydown",function(e){if(e.key==="ArrowRight"||e.key===" "||e.key==="PageDown"){i=Math.min(d.length-1,i+1);ver()}if(e.key==="ArrowLeft"||e.key==="PageUp"){i=Math.max(0,i-1);ver()}if(e.key==="Home"){i=0;ver()}if(e.key==="End"){i=d.length-1;ver()}});' +
+    'document.addEventListener("click",function(e){if(e.clientX>window.innerWidth/2){i=Math.min(d.length-1,i+1)}else{i=Math.max(0,i-1)}ver()});' +
+    'window.addEventListener("resize",ver);ver();' +
+    '<\/script></body></html>';
+  const blob = new Blob([doc], { type: 'text/html' });
+  window.ParrotZip.descargar(nombrePres + '.html', blob);
+  flash('Exportado como HTML navegable');
+}
+
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); guardar(); }
+});
+
+// ============ MODO PRESENTAR ============
+const overlay = document.getElementById('overlay');
+const pantalla = document.getElementById('pantalla');
+function renderPantalla() {
+  const d = diapo();
+  pantalla.style.background = d.fondo;
+  pantalla.innerHTML = '';
+  const escala = Math.min(window.innerWidth / 960, window.innerHeight / 540);
+  const cont = document.createElement('div');
+  cont.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(' + escala + ');width:960px;height:540px;';
+  for (const el of d.elementos) {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:absolute;left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.w + 'px;height:' + el.h + 'px;color:' + el.color + ';background:' + el.bg + ';font-size:' + el.size + 'px;padding:' + (el.tipo === 'texto' ? '4px 6px' : '0') + ';overflow:hidden;' + (el.tipo === 'circulo' ? 'border-radius:50%;' : '');
+    if (el.tipo === 'imagen') div.innerHTML = '<img src="' + el.src + '" style="width:100%;height:100%;object-fit:contain;">';
+    else div.textContent = el.texto || '';
+    cont.appendChild(div);
+  }
+  pantalla.appendChild(cont);
+}
+function presentar() { overlay.classList.add('on'); renderPantalla(); if (pantalla.requestFullscreen) pantalla.requestFullscreen().catch(() => {}); }
+function salirPresentar() { overlay.classList.remove('on'); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); }
+document.addEventListener('keydown', e => {
+  if (!overlay.classList.contains('on')) return;
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+    if (pres.actual < pres.diapositivas.length - 1) { pres.actual++; selId = null; render(); renderPantalla(); }
+  } else if (e.key === 'ArrowLeft') {
+    if (pres.actual > 0) { pres.actual--; selId = null; render(); renderPantalla(); }
+  } else if (e.key === 'Escape') { salirPresentar(); }
+});
+
+window.addEventListener('resize', ajustarEscala);
+
+// ============ MENÚ ARCHIVO CENTRALIZADO ============
+window.ParrotMenu.montar({
+  contenedor: document.getElementById('acciones'),
+  app: 'pres',
+  callbacks: {
+    nuevo: function () {
+      if (!confirm('¿Crear presentación nueva? Se pierde lo no guardado.')) return;
+      pres = { diapositivas: [{ fondo: '#ffffff', elementos: [] }], actual: 0 };
+      contador = 1; selId = null;
+      render(); marcarSinGuardar();
+    },
+    abrir: function () { document.getElementById('fileInput').click(); },
+    guardar: function () { guardar(); },
+    imprimir: function () { window.print(); },
+    plantilla: function (id) {
+      const d = window.ParrotPlantillas.datos('pres', id);
+      if (d) {
+        pres = d.pres; contador = d.contador || 1; selId = null;
+        nombrePres = window.ParrotPlantillas.nombre('pres', id);
+        document.getElementById('pres-nombre').textContent = '🎬 ' + nombrePres;
+        render(); marcarSinGuardar();
+        flash('Plantilla cargada: ' + nombrePres);
+      }
+    },
+    exportar: function (id) {
+      if (id === 'pptx') exportarPPTX();
+      else if (id === 'html') exportarHTMLPres();
+      else if (id === 'json') exportarJSON();
+    },
+    importar: function (id) {
+      const input = document.getElementById('fileInput');
+      input.setAttribute('accept', id === 'pptx' ? '.pptx' : '.json');
+      input.value = '';
+      input.click();
+    },
+    infoCompartir: function () {
+      let texto = nombrePres + '\n\n';
+      pres.diapositivas.forEach(function (d, i) {
+        texto += 'Diapositiva ' + (i + 1) + '\n';
+        d.elementos.forEach(function (el) { if (el.texto) texto += '  · ' + el.texto + '\n'; });
+      });
+      return {
+        titulo: nombrePres,
+        texto: texto,
+        archivo: { nombre: nombrePres + '.pptx', blob: window.ParrotPptx.blob(pres) }
+      };
+    }
+  },
+  plantillas: window.ParrotPlantillas.catalogos().pres,
+  exportar: [
+    { id: 'pptx', icono: '📙', etiqueta: 'PowerPoint (.pptx)', desc: 'presentación real' },
+    { id: 'html', icono: '🌐', etiqueta: 'HTML navegable', desc: 'un solo archivo, se abre en cualquier PC' },
+    { id: 'json', icono: '💾', etiqueta: 'Copia de Parrot (.json)', desc: 'respaldo con todo' }
+  ],
+  importar: [
+    { id: 'pptx', icono: '📙', etiqueta: 'PowerPoint (.pptx)', desc: 'textos, formas e imágenes' },
+    { id: 'json', icono: '💾', etiqueta: 'Copia de Parrot (.json)', desc: '' }
+  ]
+});
+
+// ============ AL ARRANCAR: plantilla / reciente ============
+(function () {
+  var usada = window.ParrotPlantillas.consumirPendiente('pres', function (d) {
+    pres = d.pres; contador = d.contador || 1; selId = null;
+    nombrePres = 'Plantilla';
+    document.getElementById('pres-nombre').textContent = '🎬 ' + nombrePres;
+    render();
+  });
+  if (usada) return;
+
+  var abrir = null;
+  try { abrir = localStorage.getItem('parrot-abrir'); } catch (e) {}
+  if (abrir) {
+    try { localStorage.removeItem('parrot-abrir'); } catch (e) {}
+    var item = window.ParrotHistorial.porId(abrir);
+    if (item && item.app === 'pres' && item.datos && item.datos.pres) {
+      pres = item.datos.pres;
+      contador = item.datos.contador || 1;
+      pres.actual = 0;
+      selId = null;
+      nombrePres = item.nombre;
+      document.getElementById('pres-nombre').textContent = '🎬 ' + nombrePres;
+      render();
+      flash('Abierto del historial: ' + item.nombre);
+    }
+  }
+})();
+
+render();
+</script>
+</body>
+</html>

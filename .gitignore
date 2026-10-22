@@ -1,0 +1,12 @@
+# basura de sistemas y herramientas
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# node (solo hace falta para el servidor opcional del chat)
+node_modules/
+
+# copias de seguridad y temporales
+*.tmp
+*.bak
+_respaldos/

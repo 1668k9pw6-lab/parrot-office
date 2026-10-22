@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orión — Parrot Office</title>
+<style>
+  :root {
+    --verde: #17c98a; --verde-osc: #0f9c6c; --amarillo: #ffc53d; --coral: #ff6b52;
+    --fondo: #0d1015; --panel: #141a21; --borde: #232c37; --texto: #e7edf4; --suave: #8b98a8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--fondo); color: var(--texto);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh; display: flex; flex-direction: column;
+  }
+  body::before {
+    content: ''; position: fixed; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--verde) 0%, var(--verde) 38%, var(--amarillo) 62%, var(--coral) 100%);
+  }
+  header {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    background: var(--panel); border-bottom: 1px solid var(--borde); flex-shrink: 0;
+  }
+  .loro { width: 30px; height: 30px; }
+  header h1 { font-size: 15px; font-weight: 650; }
+  header h1 span { color: var(--verde); }
+  .estado { margin-left: auto; font-size: 10.5px; color: var(--suave); display: flex; align-items: center; gap: 6px; }
+  .estado .punto { width: 7px; height: 7px; border-radius: 50%; background: var(--suave); }
+  .estado.on .punto { background: var(--verde); }
+  .estado.local .punto { background: var(--amarillo); }
+
+  #chat { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 86%; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .msg.yo { align-self: flex-end; background: var(--verde); color: #06231a; border-bottom-right-radius: 4px; }
+  .msg.orion { align-self: flex-start; background: var(--panel); border: 1px solid var(--borde); border-bottom-left-radius: 4px; }
+  .msg.sistema { align-self: center; background: none; border: none; color: var(--suave); font-size: 11.5px; text-align: center; max-width: 100%; }
+  .msg .hecho {
+    display: inline-block; margin-top: 8px; font-size: 11.5px; font-weight: 600;
+    color: var(--verde); background: rgba(23,201,138,.12); border: 1px solid rgba(23,201,138,.35);
+    border-radius: 7px; padding: 5px 9px; cursor: pointer;
+  }
+  .pensando { color: var(--suave); font-size: 12px; font-style: italic; }
+
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; padding: 8px 12px 0; flex-shrink: 0; }
+  .chip {
+    font-size: 11px; color: var(--verde); background: rgba(23,201,138,.09);
+    border: 1px solid rgba(23,201,138,.3); border-radius: 999px; padding: 4px 10px; cursor: pointer;
+  }
+  .chip:hover { background: rgba(23,201,138,.18); }
+
+  .abajo { display: flex; gap: 8px; padding: 10px 12px 12px; flex-shrink: 0; }
+  #texto {
+    flex: 1; background: #10161d; border: 1px solid var(--borde); border-radius: 9px;
+    color: var(--texto); padding: 9px 11px; font-size: 13px; font-family: inherit; resize: none;
+  }
+  #texto:focus { outline: none; border-color: var(--verde); }
+  #enviar {
+    background: var(--verde); border-color: var(--verde); color: #06231a;
+    font-weight: 650; border-radius: 9px; padding: 0 16px; font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="loro" viewBox="0 0 32 32" fill="none">
+    <circle cx="16" cy="16" r="15" fill="#17c98a"/>
+    <path d="M16 6c-5 0-9 4-9 9 0 2 .5 3.5 1.5 4.5C9 22 11 23 16 23s7-1 7.5-3.5c1-1 1.5-2.5 1.5-4.5 0-5-4-9-9-9z" fill="#0f9c6c"/>
+    <circle cx="12.5" cy="14" r="2" fill="#fff"/><circle cx="19.5" cy="14" r="2" fill="#fff"/>
+    <circle cx="12.8" cy="14.3" r="1" fill="#111"/><circle cx="19.2" cy="14.3" r="1" fill="#111"/>
+    <path d="M13 19.5c1.8 1.2 4.2 1.2 6 0-1 1.8-2.5 2.5-3 2.5s-2-.7-3-2.5z" fill="#ffc53d"/>
+  </svg>
+  <h1>Orión · <span>Parrot Office</span></h1>
+  <span class="estado" id="estado"><span class="punto"></span><span id="estado-txt">conectando…</span></span>
+</header>
+
+<div id="chat"></div>
+
+<div class="chips" id="chips"></div>
+
+<div class="abajo">
+  <textarea id="texto" rows="1" placeholder="Escribile a Orión… (Enter envía)"></textarea>
+  <button id="enviar">Enviar</button>
+</div>
+
+<script>
+// ---- puerta de activación ----
+(function () {
+  try {
+    if (!localStorage.getItem('parrot-activado')) { location.href = 'activar.html'; }
+  } catch (e) {}
+})();
+
+var chat = document.getElementById('chat');
+var texto = document.getElementById('texto');
+var estadoEl = document.getElementById('estado');
+var estadoTxt = document.getElementById('estado-txt');
+var historial = [];
+var servidorOK = false;
+var ocupado = false;
+
+function pintar(quien, txt, extra) {
+  var d = document.createElement('div');
+  d.className = 'msg ' + quien;
+  d.textContent = txt;
+  if (extra) {
+    var b = document.createElement('span');
+    b.className = 'hecho';
+    b.textContent = extra.texto;
+    b.addEventListener('click', extra.fn);
+    d.appendChild(document.createElement('br'));
+    d.appendChild(b);
+  }
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+  return d;
+}
+
+function sistema(txt) { pintar('sistema', txt); }
+
+function estado(modo, txt) {
+  estadoEl.className = 'estado ' + modo;
+  estadoTxt.textContent = txt;
+}
+
+/* ---------- aplicar acciones (crear cosas de verdad) ---------- */
+function aplicarAccion(acc) {
+  var apps = { doc: 'procesador.html', hoja: 'hoja.html', pres: 'presentaciones.html' };
+  if (!apps[acc.app]) return null;
+  var destino = window.opener && !window.opener.closed ? window.opener : window;
+  try {
+    destino.localStorage.setItem('parrot-plantilla', acc.app + ':' + (acc.plantilla || 'blanco'));
+  } catch (e) {}
+  return { app: acc.app, plantilla: acc.plantilla || 'blanco' };
+}
+
+function botonAbrir(app, plantilla) {
+  var nombres = { doc: 'Abrir el documento', hoja: 'Abrir la hoja', pres: 'Abrir la presentación' };
+  return {
+    texto: '▶ ' + (nombres[app] || 'Abrir'),
+    fn: function () {
+      var paginas = { doc: 'procesador.html', hoja: 'hoja.html', pres: 'presentaciones.html' };
+      var destino = window.opener && !window.opener.closed ? window.opener : window;
+      destino.location.href = paginas[app];
+      if (destino === window) return;
+      // si se abrió desde un programa, la ventana del chat se cierra al ratito
+      setTimeout(function () { try { window.close(); } catch (e) {} }, 400);
+    }
+  };
+}
+
+/* ---------- modo local (si el servidor no está) ---------- */
+function responderLocal(t) {
+  var m;
+  // crear cosas
+  if ((m = /(hoja|planilla|excel|calculo|cálculo)/i.exec(t)) && /(crear|nueva|nuevo|hacer|armar|abrir|empezar)/i.test(t)) {
+    var pl = 'blanco';
+    if (/presupuesto/i.test(t)) pl = 'presupuesto';
+    else if (/gasto/i.test(t)) pl = 'gastos';
+    else if (/inventario|stock/i.test(t)) pl = 'inventario';
+    else if (/agenda|contacto/i.test(t)) pl = 'agenda';
+    var acc = aplicarAccion({ app: 'hoja', plantilla: pl });
+    if (acc) return { txt: 'Listo, te preparé la hoja' + (pl !== 'blanco' ? ' con la plantilla "' + pl + '"' : ' en blanco') + '. Tocá el botón para abrirla.', accion: botonAbrir('hoja', pl) };
+  }
+  if (/(documento|texto|carta|informe|minuta|recibo|word)/i.test(t) && /(crear|nueva|nuevo|hacer|armar|escribir|empezar)/i.test(t)) {
+    var pld = 'blanco';
+    if (/carta/i.test(t)) pld = 'carta';
+    else if (/informe|reporte/i.test(t)) pld = 'informe';
+    else if (/minuta|reuni|acta/i.test(t)) pld = 'minuta';
+    else if (/recibo|factura/i.test(t)) pld = 'recibo';
+    var acc2 = aplicarAccion({ app: 'doc', plantilla: pld });
+    if (acc2) return { txt: 'Listo, te preparé el documento' + (pld !== 'blanco' ? ' con la plantilla "' + pld + '"' : ' en blanco') + '. Tocá el botón para abrirlo.', accion: botonAbrir('doc', pld) };
+  }
+  if (/(presentacion|presentación|diapositiva|slide|powerpoint)/i.test(t) && /(crear|nueva|nuevo|hacer|armar|empezar)/i.test(t)) {
+    var plp = 'blanco';
+    if (/portada|titulo|título/i.test(t)) plp = 'titulo';
+    else if (/gracias|cierre/i.test(t)) plp = 'gracias';
+    else if (/columna/i.test(t)) plp = 'dosColumnas';
+    var acc3 = aplicarAccion({ app: 'pres', plantilla: plp });
+    if (acc3) return { txt: 'Listo, te preparé la presentación' + (plp !== 'blanco' ? ' con la plantilla "' + plp + '"' : ' en blanco') + '. Tocá el botón para abrirla.', accion: botonAbrir('pres', plp) };
+  }
+  // ayuda
+  if (/f[oó]rmula|suma|promedio|si\(/i.test(t)) {
+    return { txt: 'Las fórmulas se escriben en la celda o en la barra fx, empezando con "=".\n\n' +
+      '· =SUMA(A1:A10) suma un rango\n· =PROMEDIO(B2:B8) promedio\n· =SI(A1>100,"grande","chico") condición\n' +
+      '· =CONTAR.SI(A1:A20,"Sí") contar coincidencias\n· =SUMAR.SI(A1:A20,"Sí",B1:B20) suma condicional\n' +
+      '· =REDONDEAR(C1,2) dos decimales\n\nTambién podés seleccionar un rango con shift+clic, copiar con Ctrl+C y pegar en Excel (o al revés).' };
+  }
+  if (/atajo|teclado/i.test(t)) {
+    return { txt: 'Atajos:\n· Ctrl+S guardar\n· Ctrl+F buscar · Ctrl+H reemplazar · F3 siguiente\n' +
+      '· Ctrl+B / I / U negrita, cursiva, subrayado\n· En la hoja: Enter y Tab mueven entre celdas, shift+clic elige un rango, Ctrl+C copia, Ctrl+V pega desde Excel' };
+  }
+  if (/exportar|guardar como|word|excel|powerpoint|pdf/i.test(t)) {
+    return { txt: 'Para exportar: tocá el botón "📂 Archivo" y elegí el formato. Ahí están todos juntos:\n' +
+      '· Documento → Word (.docx), PDF, HTML, Markdown, texto\n· Hoja → Excel (.xlsx), CSV, HTML, respaldo .json\n· Presentación → PowerPoint (.pptx), HTML navegable\n\n' +
+      'Los archivos se descargan y se abren con doble clic en Word, Excel o PowerPoint.' };
+  }
+  if (/hola|buenas|quien sos|quién sos|que haces|qué haces/i.test(t)) {
+    return { txt: '¡Hola! Soy Orión, estoy dentro de Parrot Office para ayudarte. Pedime "crear una hoja de cálculo con presupuesto", "hacer una carta" o "ayuda con fórmulas" y lo hacemos.' };
+  }
+  return { txt: 'Estoy en modo local (el servidor de Orión no está corriendo), así que puedo hacer lo básico: crear documentos, hojas o presentaciones con plantillas, y explicar fórmulas, atajos y exportaciones.\n\n' +
+    'Para la charla completa, pedile a Orión que deje corriendo el servidor (parrot-chat.js) y vuelvo a intentar.' };
+}
+
+/* ---------- envío al servidor ---------- */
+function enviarAlServidor(t) {
+  return fetch('http://127.0.0.1:8790/mensaje', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ texto: t, historial: historial })
+  }).then(function (r) { return r.json(); });
+}
+
+function enviar() {
+  var t = texto.value.trim();
+  if (!t || ocupado) return;
+  pintar('yo', t);
+  historial.push({ rol: 'user', texto: t });
+  texto.value = '';
+  ocupado = true;
+
+  if (!servidorOK) {
+    var r = responderLocal(t);
+    setTimeout(function () {
+      pintar('orion', r.txt, r.accion);
+      historial.push({ rol: 'assistant', texto: r.txt });
+      ocupado = false;
+    }, 350);
+    return;
+  }
+
+  var pensando = pintar('orion', '…');
+  pensando.classList.add('pensando');
+  enviarAlServidor(t).then(function (j) {
+    pensando.remove();
+    ocupado = false;
+    if (j.error) {
+      estado('local', 'modo local');
+      servidorOK = false;
+      var rl = responderLocal(t);
+      pintar('orion', rl.txt, rl.accion);
+      historial.push({ rol: 'assistant', texto: rl.txt });
+      return;
+    }
+    var resp = j.respuesta || '';
+    var accion = null;
+    var limpia = resp.replace(/\[ACCION\]\s*(\{.*?\})\s*$/m, function (todo, json) {
+      try { accion = JSON.parse(json); } catch (e) {}
+      return '';
+    }).trim();
+    var extra = null;
+    if (accion && accion.app) extra = botonAbrir(accion.app, accion.plantilla);
+    pintar('orion', limpia || resp, extra);
+    historial.push({ rol: 'assistant', texto: limpia || resp });
+  }).catch(function () {
+    pensando.remove();
+    ocupado = false;
+    estado('local', 'modo local');
+    servidorOK = false;
+    var rl = responderLocal(t);
+    pintar('orion', rl.txt, rl.accion);
+    historial.push({ rol: 'assistant', texto: rl.txt });
+  });
+}
+
+document.getElementById('enviar').addEventListener('click', enviar);
+texto.addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
+});
+
+/* ---------- chips de acceso rápido ---------- */
+var chips = [
+  { t: 'Crear hoja de cálculo', msg: 'crear una hoja de cálculo en blanco' },
+  { t: 'Hoja de presupuesto', msg: 'crear una hoja de cálculo con plantilla de presupuesto' },
+  { t: 'Crear documento', msg: 'crear un documento en blanco' },
+  { t: 'Carta formal', msg: 'crear una carta formal' },
+  { t: 'Crear presentación', msg: 'crear una presentación en blanco' },
+  { t: 'Ayuda con fórmulas', msg: 'ayuda con fórmulas' },
+  { t: 'Atajos de teclado', msg: 'atajos de teclado' },
+  { t: '¿Cómo exporto?', msg: 'cómo exporto a Word o Excel' }
+];
+var cajaChips = document.getElementById('chips');
+chips.forEach(function (c) {
+  var b = document.createElement('span');
+  b.className = 'chip';
+  b.textContent = c.t;
+  b.addEventListener('click', function () {
+    texto.value = c.msg;
+    enviar();
+  });
+  cajaChips.appendChild(b);
+});
+
+/* ---------- arranque ---------- */
+sistema('Hola, soy Orión. Pedime crear documentos, hojas o presentaciones, o ayuda con fórmulas y exportaciones.');
+fetch('http://127.0.0.1:8790/estado').then(function (r) { return r.json(); }).then(function (j) {
+  if (j && j.ok && j.conClave) { servidorOK = true; estado('on', 'conectado'); }
+  else { estado('local', 'modo local'); }
+}).catch(function () { estado('local', 'modo local'); });
+</script>
+</body>
+</html>

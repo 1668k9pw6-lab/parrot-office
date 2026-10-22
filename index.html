@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parrot Office</title>
+<style>
+  :root {
+    --verde: #17c98a; --verde-osc: #0f9c6c; --amarillo: #ffc53d; --coral: #ff6b52;
+    --fondo: #0d1015; --panel: #141a21; --borde: #232c37; --texto: #e7edf4; --suave: #8b98a8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--fondo); color: var(--texto);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column;
+  }
+  .cabeza {
+    display: flex; align-items: center; gap: 14px;
+    padding: 34px 40px 6px; max-width: 1200px; width: 100%; margin: 0 auto;
+  }
+  .loro { width: 52px; height: 52px; }
+  h1 { font-size: 28px; letter-spacing: -.3px; font-weight: 650; }
+  h1 span { color: var(--verde); }
+  .cabeza .der { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .sub { color: var(--suave); padding: 8px 40px 16px; font-size: 13.5px; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .formatos { padding: 0 40px 8px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 1200px; width: 100%; margin: 0 auto; }
+  .chip {
+    font-size: 11px; font-weight: 600; letter-spacing: .4px;
+    color: var(--verde); background: rgba(23,201,138,.09);
+    border: 1px solid rgba(23,201,138,.28); border-radius: 999px; padding: 3px 10px;
+  }
+  .chip.nota { color: var(--suave); background: none; border-color: var(--borde); font-weight: 400; letter-spacing: 0; }
+  footer {
+    margin-top: auto; padding: 18px 40px; border-top: 1px solid var(--borde);
+    color: var(--suave); font-size: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+</style>
+  <link rel="stylesheet" href="oficina-tema.css">
+</head>
+<body>
+
+<div class="cabeza">
+  <svg class="loro" viewBox="0 0 32 32" fill="none">
+    <circle cx="16" cy="16" r="15" fill="#17c98a"/>
+    <path d="M16 6c-5 0-9 4-9 9 0 2 .5 3.5 1.5 4.5C9 22 11 23 16 23s7-1 7.5-3.5c1-1 1.5-2.5 1.5-4.5 0-5-4-9-9-9z" fill="#0f9c6c"/>
+    <circle cx="12.5" cy="14" r="2" fill="#fff"/><circle cx="19.5" cy="14" r="2" fill="#fff"/>
+    <circle cx="12.8" cy="14.3" r="1" fill="#111"/><circle cx="19.2" cy="14.3" r="1" fill="#111"/>
+    <path d="M13 19.5c1.8 1.2 4.2 1.2 6 0-1 1.8-2.5 2.5-3 2.5s-2-.7-3-2.5z" fill="#ffc53d"/>
+    <path d="M9 8c-1-2-3-2-3 0s2 2 3 1zM23 8c1-2 3-2 3 0s-2 2-3 1z" fill="#ffc53d"/>
+  </svg>
+  <h1>Parrot <span>Office</span></h1>
+  <div class="der">
+    <span class="activacion" id="chip-activacion"><span class="punto"></span><span id="activacion-txt">activado</span></span>
+    <button onclick="window.open('chat.html','orion_chat','width=480,height=720,popup=yes')" title="Chatear con Orión">💬 Orión</button>
+  </div>
+</div>
+
+<p class="sub">Tu oficina propia. Hecha desde cero, sin ataduras. Todo se guarda en esta computadora.</p>
+
+<div class="formatos">
+  <span class="chip">.docx</span><span class="chip">.xlsx</span><span class="chip">.pptx</span><span class="chip">.pdf</span><span class="chip">.md</span><span class="chip">.csv</span><span class="chip">.html</span><span class="chip">.txt</span>
+  <span class="chip nota">leer y escribir, de verdad</span>
+</div>
+
+<!-- ================= RECIENTES ================= -->
+<div class="seccion">
+  <div class="seccion-cabeza">
+    <h2>Recientes</h2>
+    <span class="cuenta" id="recientes-cuenta"></span>
+    <span class="espaciado">
+      <button class="mini-btn" id="btn-limpiar" title="Vaciar el historial de esta PC">Limpiar historial</button>
+    </span>
+  </div>
+  <div class="buscador">
+    <input type="search" id="busca-recientes" placeholder="Buscar en mis documentos… (nombre o contenido)">
+  </div>
+  <div class="recientes" id="lista-recientes"></div>
+</div>
+
+<!-- ================= CREAR NUEVO ================= -->
+<div class="seccion">
+  <div class="seccion-cabeza"><h2>Crear nuevo</h2><span class="cuenta">elegí un programa o una plantilla</span></div>
+  <div class="grid">
+    <a class="card listo" href="procesador.html">
+      <div class="icono">📄</div>
+      <h2><em>Procesador</em> de textos</h2>
+      <p>Formato completo, buscar y reemplazar, imágenes y tablas. <strong>Abre y exporta</strong> Word, PDF, Markdown, HTML y texto.</p>
+      <div class="estado">✓ Listo para usar</div>
+    </a>
+    <a class="card listo" href="hoja.html">
+      <div class="icono">📊</div>
+      <h2><em>Hoja</em> de cálculo</h2>
+      <p>Motor de fórmulas propio, copiar y pegar desde Excel, selección de rangos. <strong>Abre y exporta</strong> Excel (.xlsx) y CSV.</p>
+      <div class="estado">✓ Listo para usar</div>
+    </a>
+    <a class="card listo" href="presentaciones.html">
+      <div class="icono">🎬</div>
+      <h2><em>Presentaciones</em></h2>
+      <p>Texto, formas e imágenes, arrastre libre, alineación y modo pantalla completa. <strong>Abre y exporta</strong> PowerPoint (.pptx).</p>
+      <div class="estado">✓ Listo para usar</div>
+    </a>
+  </div>
+</div>
+
+<div class="seccion">
+  <div class="seccion-cabeza"><h2>Plantillas</h2><span class="cuenta">empezar con algo armado</span></div>
+  <div class="plantillas" id="lista-plantillas"></div>
+</div>
+
+<!-- ================= ACCESOS RÁPIDOS ================= -->
+<div class="seccion">
+  <div class="seccion-cabeza"><h2>Accesos rápidos</h2></div>
+  <div class="accesos">
+    <button class="acceso" id="ac-abrir"><span class="a-ico">📂</span> Abrir archivo de mi PC…</button>
+    <button class="acceso" id="ac-csv"><span class="a-ico">📥</span> Importar CSV a la hoja</button>
+    <button class="acceso" id="ac-activar"><span class="a-ico">🔑</span> Activar otra clave</button>
+    <button class="acceso" id="ac-atajos"><span class="a-ico">⌨️</span> Ver atajos de teclado</button>
+    <button class="acceso" id="ac-orion"><span class="a-ico">💬</span> Pedirle ayuda a Orión</button>
+    <button class="acceso" id="ac-acerca"><span class="a-ico">ℹ️</span> Acerca de Parrot Office</button>
+  </div>
+  <div class="atajos" id="zatajos" style="display:none; margin-top:14px">
+    <span><kbd>Ctrl</kbd>+<kbd>S</kbd> guardar</span>
+    <span><kbd>Ctrl</kbd>+<kbd>F</kbd> buscar</span>
+    <span><kbd>Ctrl</kbd>+<kbd>H</kbd> reemplazar</span>
+    <span><kbd>F3</kbd> siguiente coincidencia</span>
+    <span><kbd>Ctrl</kbd>+<kbd>B</kbd> negrita</span>
+    <span><kbd>Ctrl</kbd>+<kbd>I</kbd> cursiva</span>
+    <span><kbd>Ctrl</kbd>+<kbd>U</kbd> subrayado</span>
+    <span><kbd>Enter</kbd> / <kbd>Tab</kbd> mover entre celdas</span>
+    <span><kbd>←</kbd> <kbd>→</kbd> navegar al presentar</span>
+  </div>
+</div>
+
+<footer>
+  <span>Parrot Office · suite propia, código 100% original</span>
+  <span>Funciona sin internet · .docx .xlsx .pptx reales</span>
+</footer>
+
+<script src="oficina-claves.js"></script>
+<script src="oficina-historial.js"></script>
+<script src="oficina-plantillas.js"></script>
+<script>
+// ---- puerta: sin activación no se entra ----
+if (!window.ParrotClaves.estado().activado) location.href = 'activar.html';
+
+var APPS_NOMBRE = { doc: 'Documento', hoja: 'Hoja', pres: 'Presentación' };
+
+// ---- estado de activación ----
+(function () {
+  var e = window.ParrotClaves.estado();
+  document.getElementById('activacion-txt').textContent =
+    'activado · ' + e.restantes + ' de ' + e.total + ' claves libres';
+})();
+
+// ---- recientes ----
+function pintarRecientes(filtro) {
+  var lista = window.ParrotHistorial.listar();
+  var caja = document.getElementById('lista-recientes');
+  var f = (filtro || '').trim().toLowerCase();
+
+  var docs = lista.filter(function (r) {
+    return !f || r.nombre.toLowerCase().indexOf(f) >= 0 || (r.previa || '').toLowerCase().indexOf(f) >= 0;
+  });
+  var fijos = docs.filter(function (r) { return r.fijado; });
+  var normales = docs.filter(function (r) { return !r.fijado; });
+  docs = fijos.concat(normales);
+
+  document.getElementById('recientes-cuenta').textContent = lista.length
+    ? lista.length + ' en el historial' + (f ? ' · ' + docs.length + ' coinciden' : '')
+    : '';
+
+  caja.innerHTML = '';
+  if (!docs.length) {
+    caja.innerHTML = '<div class="vacio">' +
+      (lista.length ? 'Ninguno coincide con “' + (filtro || '') + '”.' :
+      'Todavía no guardaste nada. Cuando guardes un documento, una hoja o una presentación, van a aparecer acá.') +
+      '</div>';
+    return;
+  }
+
+  docs.forEach(function (r) {
+    var tar = document.createElement('div');
+    tar.className = 'reciente' + (r.fijado ? ' fijado' : '');
+    tar.innerHTML =
+      '<div class="r-ico">' + r.icono + '</div>' +
+      '<div class="r-cuerpo">' +
+        '<div class="r-nombre">' + esc(r.nombre) + '</div>' +
+        '<div class="r-meta">' + r.appNombre + ' · ' + r.fechaTexto + ' · ' + r.tamanoTexto + '</div>' +
+        '<div class="r-previa">' + esc(r.previa || '') + '</div>' +
+      '</div>' +
+      '<button class="r-pin' + (r.fijado ? ' on' : '') + '" title="' + (r.fijado ? 'Quitar de arriba' : 'Fijar arriba') + '">' + (r.fijado ? '📌' : '📍') + '</button>';
+
+    tar.addEventListener('click', function (ev) {
+      if (ev.target.closest('.r-pin')) {
+        window.ParrotHistorial.fijar(r.id);
+        pintarRecientes(document.getElementById('busca-recientes').value);
+        return;
+      }
+      try { localStorage.setItem('parrot-abrir', r.id); } catch (e2) {}
+      location.href = r.pagina;
+    });
+    caja.appendChild(tar);
+  });
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+document.getElementById('busca-recientes').addEventListener('input', function () {
+  pintarRecientes(this.value);
+});
+document.getElementById('btn-limpiar').addEventListener('click', function () {
+  if (confirm('¿Vaciar el historial de documentos de esta PC? (no borra tus archivos exportados)')) {
+    window.ParrotHistorial.limpiar();
+    pintarRecientes('');
+  }
+});
+pintarRecientes('');
+
+// ---- plantillas ----
+(function () {
+  var caja = document.getElementById('lista-plantillas');
+  var cat = window.ParrotPlantillas.catalogos();
+  ['doc', 'hoja', 'pres'].forEach(function (app) {
+    cat[app].forEach(function (p) {
+      if (p.id === 'blanco') return;
+      var b = document.createElement('button');
+      b.className = 'plantilla';
+      b.innerHTML = '<span class="p-ico">' + p.icono + '</span>' +
+        '<span class="p-nombre">' + p.nombre + '</span>' +
+        '<span class="p-app"><b>' + APPS_NOMBRE[app] + '</b></span>';
+      b.addEventListener('click', function () { window.ParrotPlantillas.usar(app, p.id); });
+      caja.appendChild(b);
+    });
+  });
+})();
+
+// ---- accesos rápidos ----
+document.getElementById('ac-abrir').addEventListener('click', function () {
+  var app = prompt('¿Qué tipo de archivo querés abrir?\n\n1 = Word, PDF, Markdown, HTML o texto (Procesador)\n2 = Excel o CSV (Hoja de cálculo)\n3 = PowerPoint (Presentaciones)', '1');
+  if (!app) return;
+  var destino = { '1': 'procesador.html', '2': 'hoja.html', '3': 'presentaciones.html' }[app.trim()];
+  if (!destino) { alert('Elegí 1, 2 o 3.'); return; }
+  try { localStorage.setItem('parrot-autoabrir', '1'); } catch (e) {}
+  location.href = destino;
+});
+
+document.getElementById('ac-csv').addEventListener('click', function () {
+  try { localStorage.setItem('parrot-autoabrir', 'csv'); } catch (e) {}
+  location.href = 'hoja.html';
+});
+
+document.getElementById('ac-activar').addEventListener('click', function () {
+  if (confirm('¿Activar con otra clave? Se cierra la sesión actual en este navegador (tus documentos guardados quedan).')) {
+    window.ParrotClaves.olvidar();
+    location.href = 'activar.html';
+  }
+});
+
+document.getElementById('ac-atajos').addEventListener('click', function () {
+  var z = document.getElementById('zatajos');
+  z.style.display = z.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('ac-orion').addEventListener('click', function () {
+  window.open('chat.html', 'orion_chat', 'width=480,height=720,popup=yes');
+});
+
+document.getElementById('ac-acerca').addEventListener('click', function () {
+  alert('Parrot Office\n\nSuite de oficina propia: procesador de textos, hoja de cálculo y presentaciones.\n' +
+    'Todo funciona sin internet, en tu computadora. Los .docx, .xlsx y .pptx son archivos reales que abren en Word, Excel y PowerPoint.\n\n' +
+    'Código 100% original, escrito desde cero.');
+});
+</script>
+</body>
+</html>
