@@ -17,6 +17,7 @@
 <script>
 var log = [];
 function ok(n, cond, extra) { log.push((cond ? 'OK   ' : 'FALLA ') + n + (extra !== undefined ? ' :: ' + extra : '')); }
+function skip(n, extra) { log.push('SKIP ' + n + (extra !== undefined ? ' :: ' + extra : '')); }
 function bytesAB64(u8) {
   var s = '', trozo = 0x8000;
   for (var i = 0; i < u8.length; i += trozo) s += String.fromCharCode.apply(null, u8.subarray(i, i + trozo));
@@ -125,11 +126,38 @@ function seguir() {
     } catch (e) { ok('pptx round-trip', false, e.message); }
 
     // ---------- 6) activación con clave pública ----------
+    // La clave de prueba es la que trae la copia pública del repo. En una copia
+    // personal (con otras claves) esa clave no existe, así que el test de
+    // activación se omite en vez de contarse como falla: lo que sí se puede
+    // verificar sin conocer una clave válida es que el motor rechaza lo que
+    // debe rechazar.
+    var CLAVE_PRUEBA = 'PARROT-W9XK-XS2C-9PC4';
     try {
-      var r = window.ParrotClaves.activar('PARROT-W9XK-XS2C-9PC4');
-      ok('activación clave pública', r.ok, r.msg);
-      var r2 = window.ParrotClaves.activar('PARROT-W9XK-XS2C-9PC4');
-      ok('reutilización rechazada', !r2.ok, r2.msg);
+      var CL = window.ParrotClaves;
+      var idDemo = CL.idDe(CLAVE_PRUEBA);
+      var existeDemo = !!(CL.HASHES && CL.HASHES[idDemo]);
+
+      if (existeDemo) {
+        var r = CL.activar(CLAVE_PRUEBA);
+        ok('activación clave pública', r.ok, r.msg);
+        var r2 = CL.activar(CLAVE_PRUEBA);
+        ok('reutilización rechazada', !r2.ok, r2.msg);
+      } else {
+        skip('activación clave pública', 'esta copia usa otras claves; se omite el alta con clave válida');
+        // rechazo por formato inválido
+        var rf = CL.activar('CLAVE-MAL-FORMATO');
+        ok('formato inválido rechazado', !rf.ok && /formato/i.test(rf.msg), rf.msg);
+        // rechazo por clave inexistente
+        var rn = CL.activar('PARROT-ZZZZ-ZZZZ-ZZZZ');
+        ok('clave inexistente rechazada', !rn.ok && /no existe/i.test(rn.msg), rn.msg);
+        // el store de hashes está poblado y es consistente
+        var hashes = CL.HASHES || {};
+        var ids = Object.keys(hashes);
+        var consistentes = ids.length > 0 && ids.every(function (id) {
+          return hashes[id].length === 64 && hashes[id].slice(0, 8) === id;
+        });
+        ok('store de hashes consistente', consistentes, ids.length + ' claves, formato y prefijo correctos');
+      }
     } catch (e) { ok('activación clave pública', false, e.message); }
 
     // ---------- 7) historial ----------

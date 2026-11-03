@@ -193,8 +193,10 @@ La idea es **serio y minimalista, pero que llame la atención**:
 ## Decisiones técnicas
 
 - Web pura (HTML + CSS + JS vanilla): corre en cualquier lado, sin instalar
-- Motor de fórmulas escrito desde cero y probado con 43 casos automáticos
-  (incluyen ciclos, errores, formatos de número y agregados con texto)
+- Motor de fórmulas escrito desde cero y probado con **44 casos automáticos**
+  (`pruebas/test-motor.js`, se corre con `node pruebas/test-motor.js`):
+  aritmética, precedencia, comparaciones, rangos, funciones, ciclos,
+  errores y formatos de número español
 - Edición sobre `contenteditable` + `document.execCommand` (procesador):
   suficiente para esta etapa; si pide más control, se migra a motor propio
 - Estilo oscuro con verde/amarillo loro
@@ -211,5 +213,9 @@ La idea es **serio y minimalista, pero que llame la atención**:
 
 - [ ] Versión escritorio con Electron
 - [ ] Sincronizar archivos entre tus PCs
-- [ ] Leer .pptx con imágenes ya incrustadas (hoy las lee, pero el contenido
-      de `word/media` se recupera solo cuando el ZIP lo guarda sin comprimir)
+- [x] Leer .pptx con imágenes ya incrustadas — **hecho**: `oficina-inflate.js`
+      descomprime el deflate crudo que usan los ZIP de PowerPoint y Word, así que
+      las imágenes de `ppt/media` y `word/media` salen correctas aunque el archivo
+      venga comprimido. Comprobado con `pruebas/archivos/real.pptx` (imagen
+      incrustada en `ppt/media/image1.png`, método 8 = deflate): se recupera
+      byte a byte idéntica al PNG original.
